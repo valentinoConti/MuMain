@@ -56,6 +56,9 @@ int g_iLengthAuthorityCode = 20;
 const wchar_t* szServerIpAddress = L"127.127.127.127";
 WORD g_ServerPort = 44406;
 
+const wchar_t* szConnectServerIpAddress = L"127.127.127.127";
+unsigned short g_ConnectServerPort = 44406;
+
 EGameScene  SceneFlag = WEBZEN_SCENE;
 
 extern int g_iKeyPadEnable;

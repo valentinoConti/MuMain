@@ -207,6 +207,12 @@ bool SEASON3B::CNewUIHotKey::UpdateKeyEvent()
         PlayBuffer(SOUND_CLICK01);
         return false;
     }
+    else if (SEASON3B::IsPress('H'))
+    {
+        g_pNewUISystem->Toggle(SEASON3B::INTERFACE_EVENTTIMER);
+        PlayBuffer(SOUND_CLICK01);
+        return false;
+    }
     else if (SEASON3B::IsPress('T'))
     {
         g_pNewUISystem->Toggle(SEASON3B::INTERFACE_MYQUEST);

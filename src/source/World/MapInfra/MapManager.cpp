@@ -957,7 +957,7 @@ void CMapManager::Load() // OK
     if (this->InHellas())
     {
         LoadBitmap(L"Object25\\water1.tga", BITMAP_MAPTILE, GL_LINEAR, GL_REPEAT, false);
-        LoadBitmap(L"Object25\\water2.jpg", BITMAP_MAPTILE + 1, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        LoadBitmap(L"Object25\\water2.jpg", BITMAP_MAPTILE + 1, GL_LINEAR, GL_CLAMP_TO_EDGE);
 
         gLoadData.AccessModel(MODEL_CUNDUN_PART1, L"Data\\Monster\\", L"cd71a", -1);
         gLoadData.OpenTexture(MODEL_CUNDUN_PART1, L"Monster\\");
@@ -1363,89 +1363,89 @@ void CMapManager::LoadWorld(int Map)
     if (CreateWaterTerrain(this->WorldActive) == false)
     {
         mu_swprintf(FileName, L"%ls\\TileGrass01.jpg", WorldName);
-        LoadBitmap(FileName, BITMAP_MAPTILE, GL_NEAREST, GL_REPEAT, false);
+        LoadBitmap(FileName, BITMAP_MAPTILE, GL_LINEAR, GL_REPEAT, false);
         mu_swprintf(FileName, L"%ls\\TileGrass02.jpg", WorldName);
-        LoadBitmap(FileName, BITMAP_MAPTILE + 1, GL_NEAREST, GL_REPEAT, false);
+        LoadBitmap(FileName, BITMAP_MAPTILE + 1, GL_LINEAR, GL_REPEAT, false);
         if (this->WorldActive == WD_51HOME_6TH_CHAR
             )
         {
             mu_swprintf(FileName, L"%ls\\AlphaTileGround01.Tga", WorldName);
-            LoadBitmap(FileName, BITMAP_MAPTILE + 2, GL_NEAREST, GL_REPEAT, false);
+            LoadBitmap(FileName, BITMAP_MAPTILE + 2, GL_LINEAR, GL_REPEAT, false);
         }
         else
         {
             mu_swprintf(FileName, L"%ls\\TileGround01.jpg", WorldName);
-            LoadBitmap(FileName, BITMAP_MAPTILE + 2, GL_NEAREST, GL_REPEAT, false);
+            LoadBitmap(FileName, BITMAP_MAPTILE + 2, GL_LINEAR, GL_REPEAT, false);
         }
 
         if (this->WorldActive == WD_39KANTURU_3RD)
         {
             mu_swprintf(FileName, L"%ls\\AlphaTileGround02.Tga", WorldName);
-            LoadBitmap(FileName, BITMAP_MAPTILE + 3, GL_NEAREST, GL_REPEAT, false);
+            LoadBitmap(FileName, BITMAP_MAPTILE + 3, GL_LINEAR, GL_REPEAT, false);
         }
         else
         {
             mu_swprintf(FileName, L"%ls\\TileGround02.jpg", WorldName);
-            LoadBitmap(FileName, BITMAP_MAPTILE + 3, GL_NEAREST, GL_REPEAT, false);
+            LoadBitmap(FileName, BITMAP_MAPTILE + 3, GL_LINEAR, GL_REPEAT, false);
         }
         if (gMapManager.IsCursedTemple())
         {
             mu_swprintf(FileName, L"%ls\\AlphaTileGround03.Tga", WorldName);
-            LoadBitmap(FileName, BITMAP_MAPTILE + 4, GL_NEAREST, GL_REPEAT, false);
+            LoadBitmap(FileName, BITMAP_MAPTILE + 4, GL_LINEAR, GL_REPEAT, false);
         }
         else
         {
             mu_swprintf(FileName, L"%ls\\TileGround03.jpg", WorldName);
-            LoadBitmap(FileName, BITMAP_MAPTILE + 4, GL_NEAREST, GL_REPEAT, false);
+            LoadBitmap(FileName, BITMAP_MAPTILE + 4, GL_LINEAR, GL_REPEAT, false);
         }
 
         mu_swprintf(FileName, L"%ls\\TileWater01.jpg", WorldName);
-        LoadBitmap(FileName, BITMAP_MAPTILE + 5, GL_NEAREST, GL_REPEAT, false);
+        LoadBitmap(FileName, BITMAP_MAPTILE + 5, GL_LINEAR, GL_REPEAT, false);
         mu_swprintf(FileName, L"%ls\\TileWood01.jpg", WorldName);
-        LoadBitmap(FileName, BITMAP_MAPTILE + 6, GL_NEAREST, GL_REPEAT, false);
+        LoadBitmap(FileName, BITMAP_MAPTILE + 6, GL_LINEAR, GL_REPEAT, false);
         mu_swprintf(FileName, L"%ls\\TileRock01.jpg", WorldName);
-        LoadBitmap(FileName, BITMAP_MAPTILE + 7, GL_NEAREST, GL_REPEAT, false);
+        LoadBitmap(FileName, BITMAP_MAPTILE + 7, GL_LINEAR, GL_REPEAT, false);
         mu_swprintf(FileName, L"%ls\\TileRock02.jpg", WorldName);
-        LoadBitmap(FileName, BITMAP_MAPTILE + 8, GL_NEAREST, GL_REPEAT, false);
+        LoadBitmap(FileName, BITMAP_MAPTILE + 8, GL_LINEAR, GL_REPEAT, false);
         mu_swprintf(FileName, L"%ls\\TileRock03.jpg", WorldName);
-        LoadBitmap(FileName, BITMAP_MAPTILE + 9, GL_NEAREST, GL_REPEAT, false);
+        LoadBitmap(FileName, BITMAP_MAPTILE + 9, GL_LINEAR, GL_REPEAT, false);
 
         if (this->WorldActive == WD_73NEW_LOGIN_SCENE || this->WorldActive == WD_74NEW_CHARACTER_SCENE)
         {
             mu_swprintf(FileName, L"%ls\\AlphaTile01.Tga", WorldName);
-            LoadBitmap(FileName, BITMAP_MAPTILE + 10, GL_NEAREST, GL_REPEAT, false);
+            LoadBitmap(FileName, BITMAP_MAPTILE + 10, GL_LINEAR, GL_REPEAT, false);
         }
         else
         {
             mu_swprintf(FileName, L"%ls\\TileRock04.jpg", WorldName);
-            LoadBitmap(FileName, BITMAP_MAPTILE + 10, GL_NEAREST, GL_REPEAT, false);
+            LoadBitmap(FileName, BITMAP_MAPTILE + 10, GL_LINEAR, GL_REPEAT, false);
         }
 
         if (IsPKField() || IsDoppelGanger2())
         {
-            LoadBitmap(L"Object64\\song_lava1.jpg", BITMAP_MAPTILE + 11, GL_NEAREST, GL_REPEAT, false);
+            LoadBitmap(L"Object64\\song_lava1.jpg", BITMAP_MAPTILE + 11, GL_LINEAR, GL_REPEAT, false);
         }
         else
         {
             mu_swprintf(FileName, L"%ls\\TileRock05.jpg", WorldName);
-            LoadBitmap(FileName, BITMAP_MAPTILE + 11, GL_NEAREST, GL_REPEAT, false);
+            LoadBitmap(FileName, BITMAP_MAPTILE + 11, GL_LINEAR, GL_REPEAT, false);
         }
 #ifdef ASG_ADD_MAP_KARUTAN
         if (IsKarutanMap())
         {
             mu_swprintf(FileName, L"%ls\\AlphaTile01.Tga", WorldName);
-            LoadBitmap(FileName, BITMAP_MAPTILE + 12, GL_NEAREST, GL_REPEAT, false);
+            LoadBitmap(FileName, BITMAP_MAPTILE + 12, GL_LINEAR, GL_REPEAT, false);
         }
         else
         {
 #endif	// ASG_ADD_MAP_KARUTAN
             mu_swprintf(FileName, L"%ls\\TileRock06.jpg", WorldName);
-            LoadBitmap(FileName, BITMAP_MAPTILE + 12, GL_NEAREST, GL_REPEAT, false);
+            LoadBitmap(FileName, BITMAP_MAPTILE + 12, GL_LINEAR, GL_REPEAT, false);
 #ifdef ASG_ADD_MAP_KARUTAN
         }
 #endif	// ASG_ADD_MAP_KARUTAN
         mu_swprintf(FileName, L"%ls\\TileRock07.jpg", WorldName);
-        LoadBitmap(FileName, BITMAP_MAPTILE + 13, GL_NEAREST, GL_REPEAT, false);
+        LoadBitmap(FileName, BITMAP_MAPTILE + 13, GL_LINEAR, GL_REPEAT, false);
 
         for (int i = 1; i <= 16; i++)
         {
@@ -1453,7 +1453,7 @@ void CMapManager::LoadWorld(int Map)
                 mu_swprintf(FileName, L"%ls\\ExtTile%d.jpg", WorldName, i);
             else
                 mu_swprintf(FileName, L"%ls\\ExtTile0%d.jpg", WorldName, i);
-            LoadBitmap(FileName, BITMAP_MAPTILE + 13 + i, GL_NEAREST, GL_REPEAT, false);
+            LoadBitmap(FileName, BITMAP_MAPTILE + 13 + i, GL_LINEAR, GL_REPEAT, false);
         }
         if (IsPKField() || IsDoppelGanger2())
         {
@@ -1497,7 +1497,7 @@ void CMapManager::LoadWorld(int Map)
         if (IsEmpireGuardian1() || IsEmpireGuardian2() || IsEmpireGuardian3() || IsEmpireGuardian4())
         {
             mu_swprintf(FileName, L"%ls\\AlphaTile01.Tga", WorldName);
-            LoadBitmap(FileName, BITMAP_MAPTILE + 10, GL_NEAREST, GL_REPEAT, false);
+            LoadBitmap(FileName, BITMAP_MAPTILE + 10, GL_LINEAR, GL_REPEAT, false);
         }
     }
 

@@ -11,6 +11,7 @@
 #include "UI/Chat/Whisper.h"
 #include "Core/Input/ImeInput.h"
 #include "UI/NewUI/HUD/Notices.h"
+#include "UI/NewUI/Events/NewUIEventTimer.h"
 #include "Engine/Object/ZzzInventory.h"
 #include "Render/Terrain/ZzzLodTerrain.h"
 #include "Engine/Pathing/ZzzPath.h"
@@ -161,6 +162,32 @@ void AddDebugText(const unsigned char* Buffer, int Size)
 
 // Forward declaration
 static void HandleIncomingPacket(int32_t Handle, const BYTE* ReceiveBuffer, int32_t Size);
+
+// Event-timer board (server packet C1, code 0x97): parse the rows and hand them to the H-panel.
+// Layout: [0]=C1 [1]=len [2]=0x97 [3]=count, then per event 6 bytes:
+// [type][active][minutesHi][minutesLo][extraHi][extraLo].
+void ReceiveEventBoard(const BYTE* ReceiveBuffer)
+{
+    if (g_pEventTimer == NULL)
+        return;
+
+    int count = ReceiveBuffer[3];
+    if (count > SEASON3B::CNewUIEventTimer::MAX_EVENTS)
+        count = SEASON3B::CNewUIEventTimer::MAX_EVENTS;
+
+    SEASON3B::CNewUIEventTimer::EVENT_ROW rows[SEASON3B::CNewUIEventTimer::MAX_EVENTS] = {};
+    int o = 4;
+    for (int i = 0; i < count; ++i)
+    {
+        rows[i].type = ReceiveBuffer[o + 0];
+        rows[i].active = (ReceiveBuffer[o + 1] != 0);
+        rows[i].seconds = (WORD)((ReceiveBuffer[o + 2] << 8) | ReceiveBuffer[o + 3]);
+        rows[i].extra = (WORD)((ReceiveBuffer[o + 4] << 8) | ReceiveBuffer[o + 5]);
+        o += 6;
+    }
+
+    g_pEventTimer->SetBoard(rows, count);
+}
 
 static constexpr int64_t kInt64Max = std::numeric_limits<int64_t>::max();
 static constexpr int64_t kInt64Min = std::numeric_limits<int64_t>::min();
@@ -940,6 +967,12 @@ BOOL ReceiveLogOut(const BYTE* ReceiveBuffer, BOOL bEncrypted)
 
         ReleaseCharacterSceneData();
         SceneFlag = LOG_IN_SCENE;
+
+        // Return to the connect server so the next CreateLogInScene() shows the
+        // server list, not the game-server login. A prior auto-reconnect may have
+        // repointed szServerIpAddress at the game server.
+        szServerIpAddress = szConnectServerIpAddress;
+        g_ServerPort = g_ConnectServerPort;
 
         g_sceneInit.ResetForDisconnect();
         CurrentProtocolState = REQUEST_JOIN_SERVER;
@@ -13774,6 +13807,9 @@ static void ProcessPacket(const BYTE* ReceiveBuffer, int32_t Size)
         break;
     case 0x96:
         ReceiveMutoNumber(ReceiveBuffer);
+        break;
+    case 0x97:
+        ReceiveEventBoard(ReceiveBuffer);
         break;
     case 0x99:
         ReceiveServerImmigration(ReceiveBuffer);

@@ -381,7 +381,9 @@ void UseSkillWarrior(CHARACTER* c, OBJECT* o)
         o->Angle[2] = CreateAngle2D(o->Position, c->TargetPosition);
     }
 
-    if (Skill != AT_SKILL_CHAOTIC_DISEIER)
+    if (Skill != AT_SKILL_CHAOTIC_DISEIER
+        && Skill != AT_SKILL_FIRE_SCREAM
+        && Skill != AT_SKILL_FIRE_SCREAM_STR)
     {
         WORD TKey = 0xffff;
         if (g_MovementSkill.m_iTarget >= 0 && g_MovementSkill.m_iTarget < MAX_CHARACTERS_CLIENT)

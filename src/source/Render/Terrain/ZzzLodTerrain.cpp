@@ -1509,16 +1509,25 @@ void FaceTexture(int Texture, float xf, float yf, bool Water, bool Scale)
     vec3_t Light, Pos;
     Vector(0.30f, 0.40f, 0.20f, Light);
     BITMAP_t* b = &Bitmaps[BITMAP_MAPTILE + Texture];
+    // Ground tiles are pre-upscaled by TERRAIN_HD_SCALE; scaling the UV step by the same
+    // factor keeps world-space tiling identical while adding texel density (HD floors).
+    // The x64 build ships upscaled (4x) terrain tiles; the x86 build ships the ORIGINAL (1x)
+    // tiles (for Win7/32-bit users), so the scale must match the texture set each build uses.
+#ifdef _WIN64
+    constexpr float TERRAIN_HD_SCALE = 4.f;
+#else
+    constexpr float TERRAIN_HD_SCALE = 1.f;
+#endif
     float Width, Height;
     if (Scale)
     {
-        Width = 16.f / b->Width;
-        Height = 16.f / b->Height;
+        Width = 16.f * TERRAIN_HD_SCALE / b->Width;
+        Height = 16.f * TERRAIN_HD_SCALE / b->Height;
     }
     else
     {
-        Width = 64.f / b->Width;
-        Height = 64.f / b->Height;
+        Width = 64.f * TERRAIN_HD_SCALE / b->Width;
+        Height = 64.f * TERRAIN_HD_SCALE / b->Height;
     }
     float suf = xf * Width;
     float svf = yf * Height;

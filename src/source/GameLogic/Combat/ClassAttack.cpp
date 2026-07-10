@@ -869,6 +869,18 @@ void AttackKnight(CHARACTER* c, ActionSkillType Skill, float Distance)
                 {
                     int TargetX = (int)(c->TargetPosition[0] / TERRAIN_SCALE);
                     int TargetY = (int)(c->TargetPosition[1] / TERRAIN_SCALE);
+                    o->Angle[2] = CreateAngle2D(o->Position, c->TargetPosition);
+
+                    // Keep the server's authoritative position synced on every cast (the
+                    // same SendCharacterMove that Chaotic Diseier and other Lord skills do).
+                    // Without it the server position drifts from the client, and the next
+                    // move request gets rejected with an instant re-sync -> rubber-band.
+                    BYTE PathX[1];
+                    BYTE PathY[1];
+                    PathX[0] = (c->PositionX);
+                    PathY[0] = (c->PositionY);
+                    SendCharacterMove(c->Key, o->Angle[2], 1, &PathX[0], &PathY[0], TargetX, TargetY);
+
                     BYTE byValue = GetDestValue((c->PositionX), (c->PositionY), TargetX, TargetY);
 
                     BYTE pos = CalcTargetPos(o->Position[0], o->Position[1], c->TargetPosition[0], c->TargetPosition[1]);
@@ -877,7 +889,6 @@ void AttackKnight(CHARACTER* c, ActionSkillType Skill, float Distance)
                     {
                         TKey = getTargetCharacterKey(c, g_MovementSkill.m_iTarget);
                     }
-                    o->Angle[2] = CreateAngle2D(o->Position, c->TargetPosition);
                     CheckClientArrow(o);
                     SendRequestMagicContinue(Skill, (c->PositionX),
                         (c->PositionY), (BYTE)(o->Angle[2] / 360.f * 256.f), byValue, pos, TKey, 0);

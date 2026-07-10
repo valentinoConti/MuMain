@@ -34,6 +34,7 @@ namespace CfgKeys
 
     // UI
     inline constexpr wchar_t CfgKeyUILocale[] = L"Locale";
+    inline constexpr wchar_t CfgKeyFontSize[] = L"FontSize";
 
     // Camera
     inline constexpr wchar_t CfgKeyZoom[] = L"Zoom";
@@ -60,4 +61,7 @@ namespace CfgDefaults
 
     // I18N locale code; "en" is the default the resx generator falls back to.
     inline constexpr wchar_t CfgDefaultUILocale[] = L"en";
+
+    // Main UI font size in px; 0 = automatic (scales with resolution).
+    inline constexpr int CfgDefaultFontSize = 0;
 }

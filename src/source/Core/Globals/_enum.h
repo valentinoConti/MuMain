@@ -110,6 +110,7 @@ namespace SEASON3B
         INTERFACE_MUHELPER_EXT,
         INTERFACE_MUHELPER_SKILL_LIST,
         INTERFACE_SYSTEMLOGWINDOW,
+        INTERFACE_EVENTTIMER,
         INTERFACE_END,
         INTERFACE_COUNT = INTERFACE_END - 2,
     };
@@ -1485,7 +1486,16 @@ enum
     MODEL_MULTI_SHOT2,
     MODEL_MULTI_SHOT3,
     MODEL_MASK_HELM = (MODEL_MULTI_SHOT3 + MAX_QUEST_ITEM),
-    MAX_MODELS = (MODEL_MASK_HELM + MAX_ITEM_INDEX),
+
+    // Isolated Soul Master class-body set for the "Fulbito" NPC. Appended after all existing
+    // model slots so no computed index shifts. Textures load from Data\SoulMasterNPC (own copies).
+    MODEL_FULBITO_HELM = (MODEL_MASK_HELM + MAX_ITEM_INDEX),
+    MODEL_FULBITO_ARMOR,
+    MODEL_FULBITO_PANTS,
+    MODEL_FULBITO_GLOVES,
+    MODEL_FULBITO_BOOTS,
+
+    MAX_MODELS,
 };
 //object end
 
@@ -4914,7 +4924,11 @@ enum EMonsterType : int
     MONSTER_CAPTURED_STONE_STATUE_9 = 667,
     MONSTER_CAPTURED_STONE_STATUE_10 = 668,
 
-    MONSTER_END = 668
+    MONSTER_END = 668,
+
+    // Custom passive NPC "Fulbito" (Soul Master figure, own textures under Data\SoulMasterNPC),
+    // placed in the Arena. Server MonsterDefinition.Number 700 -> this client type.
+    MONSTER_FULBITO = 700,
 };
 
 enum

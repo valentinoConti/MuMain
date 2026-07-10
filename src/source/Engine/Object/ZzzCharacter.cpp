@@ -12993,6 +12993,7 @@ namespace
         case 578:
         case 579:
         case static_cast<int>(MONSTER_WANDERING_MERCHANT_ZYRO):
+        case static_cast<int>(MONSTER_FULBITO): // custom clickable NPC (hover name + hand cursor + talk request)
             return true;
         default:
             return false;
@@ -13834,6 +13835,19 @@ CHARACTER* CreateMonster(EMonsterType Type, int PositionX, int PositionY, int Ke
         {
             c->Object.Scale = 1.0f;
         }
+        break;
+    case MONSTER_FULBITO:
+        // Custom passive NPC reusing the Soul Master (Dark Wizard) figure with its OWN isolated
+        // textures (Data\SoulMasterNPC). Same mechanism as MONSTER_CURSED_WIZARD above: render the
+        // player body and assign the isolated class-body parts to the body-part slots.
+        c = CreateCharacter(Key, MODEL_PLAYER, PositionX, PositionY);
+        wcscpy(c->ID, L"Fulbito");
+        c->BodyPart[BODYPART_HELM].Type = MODEL_FULBITO_HELM;
+        c->BodyPart[BODYPART_ARMOR].Type = MODEL_FULBITO_ARMOR;
+        c->BodyPart[BODYPART_PANTS].Type = MODEL_FULBITO_PANTS;
+        c->BodyPart[BODYPART_GLOVES].Type = MODEL_FULBITO_GLOVES;
+        c->BodyPart[BODYPART_BOOTS].Type = MODEL_FULBITO_BOOTS;
+        SetCharacterScale(c);
         break;
         /*OpenMonsterModel(MONSTER_MODEL_HELL_HOUND);
         c = CreateCharacter(Key,MODEL_MONSTER01+5,PositionX,PositionY);

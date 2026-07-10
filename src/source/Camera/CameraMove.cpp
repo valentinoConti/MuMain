@@ -849,6 +849,18 @@ void CCameraMove::UpdateTourWayPoint()
                 AdvancePosition(m_CurrentCameraPos, forwardDir, targetCameraAcc);
                 AdvancePosition(m_vTourCameraPos, tourDir, targetCameraAcc);
             }
+
+            // Render the camera ON the true waypoint polyline. m_CurrentCameraPos is advanced
+            // straight along each segment (and drives waypoint-arrival), so it never leaves the
+            // path. m_vTourCameraPos was integrated independently along the corner-cutting blend
+            // direction with no correction back to the path, so its error accumulated and flung the
+            // camera outside the map at sharp turns (and it double-applied the LoginScene offset).
+            // Pin the rendered X/Y to the on-path position; the smooth blend is kept only for the
+            // yaw (m_fTargetTourCameraAngle, computed from tourDir above), so corners still rotate
+            // smoothly - they just can't drift off the map.
+            m_vTourCameraPos[0] = m_CurrentCameraPos[0];
+            m_vTourCameraPos[1] = m_CurrentCameraPos[1];
+
             m_CurrentCameraPos[2] = RequestTerrainHeight(m_CurrentCameraPos[0], m_CurrentCameraPos[1]);
             m_vTourCameraPos[2] = kTourCameraZPosition;
 

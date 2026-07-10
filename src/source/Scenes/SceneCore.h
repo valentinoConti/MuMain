@@ -16,6 +16,13 @@ extern int  ErrorMessage;
 extern bool InitServerList;
 extern const wchar_t* szServerIpAddress;
 extern unsigned short g_ServerPort;
+
+// The connect-server (server-list) endpoint, preserved separately so it is never
+// lost. ReconnectManager::Begin() repoints szServerIpAddress at the game server
+// during an auto-reconnect and never restores it; keeping the original here lets
+// "Select Server" and the login Cancel button return to the server list.
+extern const wchar_t* szConnectServerIpAddress;
+extern unsigned short g_ConnectServerPort;
 extern int g_iLengthAuthorityCode;
 
 inline SpinLock* g_render_lock = new SpinLock();

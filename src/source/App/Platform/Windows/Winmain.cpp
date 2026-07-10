@@ -6,9 +6,6 @@
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_EXTRA_LEAN
 
-#ifdef _WIN32
-#include <dpapi.h>
-#endif
 #include <clocale>
 #include "Data/GameConfig/GameConfig.h"
 #include "UI/Legacy/UIWindows.h"
@@ -1032,12 +1029,12 @@ namespace
     }
 }
 
-#ifndef _WIN32
-// Portable resolution change (issue #462). The Win32 path in ApplyResolution()
-// is entirely g_hWnd-gated and drives a synchronous WM_SIZE, neither of which
-// exists here, so the option window calls this instead. SDL owns the window;
-// resize it and apply the new dimensions immediately (SDL also posts a resize
-// event, but callers Save() config right after and must see the new size).
+// Applies a windowed/fullscreen resolution change through SDL, which owns the
+// window on every platform. Resizes and refreshes WindowWidth/Height immediately
+// via HandleWindowResize() (SDL also posts a resize event, but callers Save()
+// config right after and must see the new size). The options window uses this
+// for windowed changes on all platforms; the Win32 fullscreen path still goes
+// through ChangeDisplaySettings(). Originally issue #462.
 void MuApplyWindowResolution(unsigned int width, unsigned int height, bool windowed)
 {
     if (!g_sdlWindow || width == 0 || height == 0) return;
@@ -1066,7 +1063,6 @@ void MuApplyWindowResolution(unsigned int width, unsigned int height, bool windo
 
     HandleWindowResize(w, h);
 }
-#endif // !_WIN32
 
 MSG MainLoop()
 {
@@ -1286,10 +1282,26 @@ namespace
 
     FontSizes CalculateFontSizes()
     {
-        FontHeight = static_cast<int>(std::ceil(
+        // Automatic, resolution-based size (gentle growth with window height).
+        const int autoHeight = static_cast<int>(std::ceil(
             BASE_FONT_HEIGHT + (WindowHeight - REFERENCE_HEIGHT) * FONT_HEIGHT_GROWTH_PER_PIXEL));
-        int fixFontHeight = (WindowHeight <= SMALL_WINDOW_HEIGHT_THRESHOLD)
+
+        // The "fix" font drives the fixed-layout pre-game screens (login, character
+        // select, server select) plus buttons and input boxes, whose boxes are NOT
+        // sized off the font. So it ALWAYS uses the automatic size — never the user's
+        // Options font size — otherwise a large UI font overflows those fixed boxes.
+        // Floored at the legacy value so it never renders smaller than before; the
+        // auto formula lets it grow gently with resolution (so those screens are no
+        // longer tiny at 1440p/4K) while staying small enough to fit the boxes.
+        const int fixFloor = (WindowHeight <= SMALL_WINDOW_HEIGHT_THRESHOLD)
             ? FIX_FONT_HEIGHT_SMALL : FIX_FONT_HEIGHT_LARGE;
+        const int fixFontHeight = (autoHeight > fixFloor) ? autoHeight : fixFloor;
+
+        // Main UI font (g_hFont/Bold/Big): user's Options selection when set (>0),
+        // otherwise the automatic size. FontHeight (global used for chat/line-height
+        // math) is kept one greater than the created font, per the original convention.
+        const int userFont = GameConfig::GetInstance().GetFontSize();
+        FontHeight = (userFont > 0) ? (userFont + 1) : autoHeight;
         return { FontHeight - 1, fixFontHeight - 1 };
     }
 
@@ -1465,6 +1477,12 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int nC
         g_ServerPort = GameConfig::GetInstance().GetServerPort();
     }
 
+    // Remember the connect-server endpoint so it survives an auto-reconnect
+    // (which repoints szServerIpAddress/g_ServerPort at the game server). This is
+    // what "Select Server" and the login Cancel button use to return to the list.
+    szConnectServerIpAddress = szServerIpAddress;
+    g_ConnectServerPort = g_ServerPort;
+
     //#ifdef _DEBUG
 
     m_Username[0] = '\0';
@@ -1523,7 +1541,12 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int nC
     // The fixed-function renderer needs a compatibility-profile GL context.
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24); // was 16: fewer z-fighting / depth flicker artifacts
+#ifdef _WIN64
+    // HD (x64) client: request 4x MSAA anti-aliasing. Left off on the x86 (low-end) build.
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+#endif
 
     SDL_WindowFlags windowFlags = SDL_WINDOW_OPENGL;
     if (g_bUseWindowMode != TRUE)
@@ -1554,6 +1577,10 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int nC
     }
 
     SDL_GL_MakeCurrent(g_sdlWindow, g_sdlGLContext);
+
+#ifdef _WIN64
+    glEnable(GL_MULTISAMPLE_ARB); // HD client: turn on the 4x MSAA requested above (context now has MS buffers)
+#endif
 
 #ifdef _WIN32
     // Bridge SDL's native handles so the remaining Win32 code (IME, DirectSound,

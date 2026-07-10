@@ -108,47 +108,39 @@ void SEASON3B::CNewUIMoveCommandWindow::Release()
     }
 }
 
-void SEASON3B::CNewUIMoveCommandWindow::SetPos(int x, int y)
+void SEASON3B::CNewUIMoveCommandWindow::SetPos(int /*x*/, int y)
 {
-    m_Pos.x = x;
-    m_Pos.y = y;
-
-    m_StrifePos.x = m_Pos.x + 20;
+    // Map-name column width and the three column X offsets are hand-tuned per
+    // resolution (they track the per-resolution font scale in m_iRealFontHeight).
+    // Resolutions not listed here (e.g. 2560) fall back to the highest bracket so
+    // the window keeps a usable width instead of collapsing to an empty sliver.
+    int mapNameWidth, mapNameOffsetX, reqLevelOffsetX, reqZenOffsetX;
     switch (WindowWidth)
     {
-    case REFERENCE_WIDTH:
-        m_MapNameUISize.x = 220; m_MapNamePos.x = m_Pos.x + 62; m_ReqLevelPos.x = m_Pos.x + 119; m_ReqZenPos.x = m_Pos.x + 159;
-        break;
-    case 800:
-        m_MapNameUISize.x = 200; m_MapNamePos.x = m_Pos.x + 69; m_ReqLevelPos.x = m_Pos.x + 129; m_ReqZenPos.x = m_Pos.x + 174;
-        break;
-    case 1024:
-        m_MapNameUISize.x = 180; m_MapNamePos.x = m_Pos.x + 64; m_ReqLevelPos.x = m_Pos.x + 119; m_ReqZenPos.x = m_Pos.x + 159;
-        break;
-    case 1280:
-        m_MapNameUISize.x = 160; m_MapNamePos.x = m_Pos.x + 59; m_ReqLevelPos.x = m_Pos.x + 104; m_ReqZenPos.x = m_Pos.x + 139;
-        break;
-    case 1366:
-        m_MapNameUISize.x = 150; m_MapNamePos.x = m_Pos.x + 56; m_ReqLevelPos.x = m_Pos.x + 101; m_ReqZenPos.x = m_Pos.x + 134;
-        break;
-    case 1440:
-        m_MapNameUISize.x = 140; m_MapNamePos.x = m_Pos.x + 53; m_ReqLevelPos.x = m_Pos.x + 97; m_ReqZenPos.x = m_Pos.x + 129;
-        break;
-    case 1600:
-        m_MapNameUISize.x = 120; m_MapNamePos.x = m_Pos.x + 46; m_ReqLevelPos.x = m_Pos.x + 86; m_ReqZenPos.x = m_Pos.x + 114;
-        break;
-    case 1680:
-        m_MapNameUISize.x = 115; m_MapNamePos.x = m_Pos.x + 44; m_ReqLevelPos.x = m_Pos.x + 83; m_ReqZenPos.x = m_Pos.x + 110;
-        break;
+    case REFERENCE_WIDTH: mapNameWidth = 220; mapNameOffsetX = 62; reqLevelOffsetX = 119; reqZenOffsetX = 159; break;
+    case 800:  mapNameWidth = 200; mapNameOffsetX = 69; reqLevelOffsetX = 129; reqZenOffsetX = 174; break;
+    case 1024: mapNameWidth = 180; mapNameOffsetX = 64; reqLevelOffsetX = 119; reqZenOffsetX = 159; break;
+    case 1280: mapNameWidth = 160; mapNameOffsetX = 59; reqLevelOffsetX = 104; reqZenOffsetX = 139; break;
+    case 1366: mapNameWidth = 150; mapNameOffsetX = 56; reqLevelOffsetX = 101; reqZenOffsetX = 134; break;
+    case 1440: mapNameWidth = 140; mapNameOffsetX = 53; reqLevelOffsetX = 97;  reqZenOffsetX = 129; break;
+    case 1600: mapNameWidth = 120; mapNameOffsetX = 46; reqLevelOffsetX = 86;  reqZenOffsetX = 114; break;
+    case 1680: mapNameWidth = 115; mapNameOffsetX = 44; reqLevelOffsetX = 83;  reqZenOffsetX = 110; break;
     case 1920:
-        m_MapNameUISize.x = 110; m_MapNamePos.x = m_Pos.x + 38; m_ReqLevelPos.x = m_Pos.x + 70; m_ReqZenPos.x = m_Pos.x + 93;
-        break;
-    default:
-        // handle unsupported resolutions here
-        break;
+    default:   mapNameWidth = 110; mapNameOffsetX = 38; reqLevelOffsetX = 70;  reqZenOffsetX = 93;  break;
     }
+    mapNameWidth += 10;
 
-    m_MapNameUISize.x += 10;
+    // Center the frame horizontally in the reference space instead of pinning it
+    // to the left edge; keep the caller's vertical position. (The requested x is
+    // ignored: both callers pass a placeholder and expect a centered window.)
+    m_Pos.x = (REFERENCE_WIDTH - mapNameWidth) / 2;
+    m_Pos.y = y;
+
+    m_MapNameUISize.x = mapNameWidth;
+    m_StrifePos.x   = m_Pos.x + 20;
+    m_MapNamePos.x  = m_Pos.x + mapNameOffsetX;
+    m_ReqLevelPos.x = m_Pos.x + reqLevelOffsetX;
+    m_ReqZenPos.x   = m_Pos.x + reqZenOffsetX;
 
     m_listMoveInfoData = CMoveCommandData::GetInstance()->GetMoveCommandDatalist();
     m_iRealFontHeight = FontHeight * REFERENCE_WIDTH / WindowWidth + 2;
@@ -539,7 +531,7 @@ bool SEASON3B::CNewUIMoveCommandWindow::BtnProcess()
 
             iCurRenderTextIndex++;
 
-            if (SEASON3B::IsRelease(VK_LBUTTON) && CheckMouseIn(3, m_MapNameUISize.y - m_iRealFontHeight - 6, m_MapNameUISize.x - 5, m_iRealFontHeight))
+            if (SEASON3B::IsRelease(VK_LBUTTON) && CheckMouseIn(m_StartMapNamePos.x, m_MapNameUISize.y - m_iRealFontHeight - 6, m_MapNameUISize.x - 5, m_iRealFontHeight))
             {
                 g_pNewUISystem->Hide(SEASON3B::INTERFACE_MOVEMAP);
                 return true;
@@ -882,7 +874,7 @@ bool SEASON3B::CNewUIMoveCommandWindow::Render()
     }
 
     g_pRenderText->SetTextColor(255, 255, 255, 255);
-    g_pRenderText->RenderText(m_MapNameUISize.x / 2, m_MapNameUISize.y - m_iRealFontHeight - 5, I18N::Game::Close388, 0, 0, RT3_WRITE_CENTER);
+    g_pRenderText->RenderText(m_StartMapNamePos.x + (m_MapNameUISize.x - 5) / 2, m_MapNameUISize.y - m_iRealFontHeight - 5, I18N::Game::Close388, 0, 0, RT3_WRITE_CENTER);
     DisableAlphaBlend();
     return true;
 }

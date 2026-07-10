@@ -54,6 +54,10 @@ public:
     std::wstring GetUILocale() const { return m_uiLocale; }
     void SetUILocale(const std::wstring& locale);
 
+    // Main UI font size in px; 0 = automatic (scales with resolution).
+    int  GetFontSize() const { return m_fontSize; }
+    void SetFontSize(int size);
+
     // Camera
     int GetZoom() const { return m_zoom; }
     void SetZoom(int zoom);
@@ -88,6 +92,7 @@ private:
     int m_serverPort;
 
     std::wstring m_uiLocale;
+    int m_fontSize;
 
     int m_zoom;
 

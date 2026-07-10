@@ -3800,7 +3800,9 @@ void RenderTournamentInterface()
     int WindowX = (REFERENCE_WIDTH - Width) / 2;
     int WindowY = 120 + 0;
     float x = 0.0f, y = 0.0f;
-    wchar_t t_Str[20];
+    // Was [20]; the localized time strings (e.g. "Remaining seconds 5:0" = 21 chars) overflow it,
+    // and mu_swprintf is unbounded on MSVC -> stack corruption / crash. Give it generous room.
+    wchar_t t_Str[64];
     wcscpy(t_Str, L"");
 
     if (g_wtMatchTimeLeft.m_Time)
@@ -3809,38 +3811,33 @@ void RenderTournamentInterface()
         int t_valueMin = g_wtMatchTimeLeft.m_Time / 60;
         if (t_valueMin <= 10)
         {
-            g_pRenderText->SetFont(g_hFontBig);
-            g_pRenderText->SetTextColor(255, 10, 10, 255);
-            g_pRenderText->SetBgColor(0);
-
             if (g_wtMatchTimeLeft.m_Type == 3)
             {
-                g_pRenderText->SetTextColor(255, 255, 10, 255);
                 mu_swprintf(t_Str, I18N::Game::ItWillStartAfterDSeconds, t_valueSec);
             }
             else
             {
-                if (g_wtMatchTimeLeft.m_Time < 60)
-                {
-                    g_pRenderText->SetTextColor(255, 255, 10, 255);
-                }
-                if (t_valueSec < 10)
-                {
-                    mu_swprintf(t_Str, I18N::Game::RemainingHoursD0D, t_valueMin, t_valueSec);
-                }
-                else
-                {
-                    mu_swprintf(t_Str, I18N::Game::RemainingSecondsDD, t_valueMin, t_valueSec);
-                }
+                mu_swprintf(t_Str, L"Tiempo restante %d:%02d", t_valueMin, t_valueSec);
             }
-            x += (float)GetScreenWidth() / 2; y += 350;
-            g_pRenderText->RenderText((int)x, (int)y, t_Str, 0, 0, RT3_WRITE_CENTER); x++; y++;
 
-            g_pRenderText->SetTextColor(0xffffffff);
+            x = (float)GetScreenWidth() / 2.f;
+            y = 350.f;
+            g_pRenderText->SetFont(g_hFontBig);
+            g_pRenderText->SetBgColor(0, 0, 0, 200); // solid black background box
+            if (g_wtMatchTimeLeft.m_Time < 60)
+            {
+                g_pRenderText->SetTextColor(255, 255, 10, 255); // yellow in the last minute
+            }
+            else
+            {
+                g_pRenderText->SetTextColor(255, 255, 255, 255); // white
+            }
+
             g_pRenderText->RenderText((int)x, (int)y, t_Str, 0, 0, RT3_WRITE_CENTER);
 
             g_pRenderText->SetFont(g_hFont);
             g_pRenderText->SetTextColor(255, 255, 255, 255);
+            g_pRenderText->SetBgColor(0);
         }
     }
 

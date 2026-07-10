@@ -17,6 +17,7 @@
 #include "Engine/Object/ZzzOpenData.h"
 #include "GameLogic/Items/InventoryUtils.h"
 #include "UI/NewUI/NewUISystem.h"
+#include "Network/Reconnect/ReconnectManager.h"
 
 extern int DeleteIndex;
 extern int AppointStatus;
@@ -2404,8 +2405,17 @@ CALLBACK_RESULT SEASON3B::CSystemMenuMsgBox::GameOverBtnDown(class CNewUIMessage
     {
         MUHelper::g_MuHelper.TriggerStop();
         LogOut = true;
+        // Intentional quit: drop the cached reconnect session so the socket close
+        // isn't misread as a dropped connection and auto-reconnected.
+        ReconnectManager::Instance().ClearSession();
         SocketClient->ToGameServer()->SendLogOut(LogOutType::CloseGame);
         g_ConsoleDebug->Write(MCD_SEND, L"0xF1 [SendRequestLogOut] 0");
+        // Quit locally instead of waiting for the server's logout response: the
+        // server closes the socket on logout, so that reply often never arrives
+        // (previously only the auto-reconnect retries eventually caught it).
+        // WM_DESTROY sets the main-loop exit flag and gracefully closes the
+        // socket, which flushes the logout packet we just sent.
+        PostMessage(g_hWnd, WM_DESTROY, 0, 0);
     }
 
     PlayBuffer(SOUND_CLICK01);
@@ -2435,6 +2445,9 @@ CALLBACK_RESULT SEASON3B::CSystemMenuMsgBox::ChooseServerBtnDown(class CNewUIMes
         MUHelper::g_MuHelper.TriggerStop();
         g_pNewUIMng->ResetActiveUIObj();
         LogOut = true;
+        // Intentional server switch: drop the cached reconnect session so the
+        // socket close isn't misread as a dropped connection and auto-reconnected.
+        ReconnectManager::Instance().ClearSession();
         SocketClient->ToGameServer()->SendLogOut(LogOutType::BackToServerSelection);
         g_ConsoleDebug->Write(MCD_SEND, L"0xF1 [SendRequestLogOut] 2");
     }

@@ -102,9 +102,11 @@ namespace SEASON3B
         int m_iResolutionIndex;
         bool m_bWindowedMode;
         int m_iLanguageIndex;
+        int m_iFontSizeIndex;
 
         CNewUIComboBox m_ResolutionCombo;
         CNewUIComboBox m_LanguageCombo;
+        CNewUIComboBox m_FontSizeCombo;
 
         void ApplyResolution();
         int FindCurrentResolutionIndex();
@@ -113,6 +115,10 @@ namespace SEASON3B
         void ApplyLanguage();
         int FindCurrentLanguageIndex();
         void InitLanguageCombo();
+
+        void ApplyFontSize();
+        int FindCurrentFontSizeIndex();
+        void InitFontSizeCombo();
     };
 }
 

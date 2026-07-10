@@ -134,6 +134,15 @@ void OpenPlayers()
         gLoadData.AccessModel(MODEL_BODY_BOOTS + (MAX_CLASS * 2) + i, L"Data\\Player\\", L"BootClass3", i + 1);
     }
 
+    // Fulbito NPC: isolated copy of the Soul Master (Dark Wizard) class body. Loads the class_01
+    // parts (and their skin_barbarian_01 texture) from Data\SoulMasterNPC so reskinning that folder
+    // affects only this NPC, never real players. Assigned to the NPC's body parts in CreateMonster.
+    gLoadData.AccessModel(MODEL_FULBITO_HELM, L"Data\\SoulMasterNPC\\", L"HelmClass", 1);
+    gLoadData.AccessModel(MODEL_FULBITO_ARMOR, L"Data\\SoulMasterNPC\\", L"ArmorClass", 1);
+    gLoadData.AccessModel(MODEL_FULBITO_PANTS, L"Data\\SoulMasterNPC\\", L"PantClass", 1);
+    gLoadData.AccessModel(MODEL_FULBITO_GLOVES, L"Data\\SoulMasterNPC\\", L"GloveClass", 1);
+    gLoadData.AccessModel(MODEL_FULBITO_BOOTS, L"Data\\SoulMasterNPC\\", L"BootClass", 1);
+
     for (int i = 0; i < 10; i++)
     {
         gLoadData.AccessModel(MODEL_HELM + i, L"Data\\Player\\", L"HelmMale", i + 1);
@@ -463,6 +472,14 @@ void OpenPlayerTextures()
             gLoadData.OpenTexture(MODEL_BODY_BOOTS + nIndex, L"Player\\");
         }
     }
+
+    // Fulbito NPC: load the isolated Soul Master class-body textures from Data\SoulMasterNPC
+    // (matches the geometry preloaded in OpenPlayers). Without this the meshes render white.
+    gLoadData.OpenTexture(MODEL_FULBITO_HELM, L"SoulMasterNPC\\");
+    gLoadData.OpenTexture(MODEL_FULBITO_ARMOR, L"SoulMasterNPC\\");
+    gLoadData.OpenTexture(MODEL_FULBITO_PANTS, L"SoulMasterNPC\\");
+    gLoadData.OpenTexture(MODEL_FULBITO_GLOVES, L"SoulMasterNPC\\");
+    gLoadData.OpenTexture(MODEL_FULBITO_BOOTS, L"SoulMasterNPC\\");
 
     for (int i = 0; i <= CLASS_END; i++)
     {
@@ -5609,6 +5626,12 @@ void OpenBasicData(HDC hDC)
 
     mu_swprintf(Text, L"Data\\Local\\%ls\\Skill_%ls.bmd", g_strSelectedML.c_str(), g_strSelectedML.c_str());
     g_SkillDataHandler.Load(Text);
+    // Teleport cooldown: 1s before it can be cast again (like Electric Spark). This is only for
+    // client-side UX/feedback; the server (WizardTeleportAction) enforces the real, un-bypassable limit.
+    if (SkillAttribute != nullptr)
+    {
+        SkillAttribute[AT_SKILL_TELEPORT].Delay = 1000;
+    }
 
     mu_swprintf(Text, L"Data\\Local\\%ls\\SocketItem_%ls.bmd", g_strSelectedML.c_str(), g_strSelectedML.c_str());
     g_SocketItemMgr.OpenSocketItemScript(Text);

@@ -599,7 +599,12 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
         return false;
     }
 
-    // Skip first 24 bytes (OZJ header)
+    // Skip first 24 bytes (OZJ header). An upscaled UI texture stamps "MUHD"+scale there so we
+    // report the ORIGINAL (logical) size while uploading the full-res texture; every UV formula
+    // (su / Width) then samples correctly at higher detail with no other code changes.
+    int logicalScale = 1;
+    if (jpegBuf[0] == 'M' && jpegBuf[1] == 'U' && jpegBuf[2] == 'H' && jpegBuf[3] == 'D' && jpegBuf[4] > 0)
+        logicalScale = jpegBuf[4];
     const unsigned char* jpegData = jpegBuf.data() + 24;
     const auto jpegSize = static_cast<unsigned long>(jpegBuf.size() - 24);
 
@@ -648,8 +653,8 @@ bool CGlobalBitmap::OpenJpegTurbo(GLuint uiBitmapIndex, const std::wstring& file
     wcsncpy(pNewBitmap->FileName, filename.c_str(), MAX_BITMAP_FILE_NAME - 1);
     pNewBitmap->FileName[MAX_BITMAP_FILE_NAME - 1] = L'\0';
 
-    pNewBitmap->Width = static_cast<float>(textureWidth);
-    pNewBitmap->Height = static_cast<float>(textureHeight);
+    pNewBitmap->Width = static_cast<float>(textureWidth / logicalScale);
+    pNewBitmap->Height = static_cast<float>(textureHeight / logicalScale);
     pNewBitmap->Components = 3;
     pNewBitmap->Ref = 1;
 
@@ -714,6 +719,12 @@ bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, 
         return false;
     }
 
+    // Upscaled UI OZT stamps "MUH"+scale in its 4-byte header (see the OZJ path) so we report the
+    // original logical size while uploading the full-res texture.
+    int logicalScale = 1;
+    if (pakBuffer[0] == 'M' && pakBuffer[1] == 'U' && pakBuffer[2] == 'H' && pakBuffer[3] > 0)
+        logicalScale = pakBuffer[3];
+
     int index = 12;
     index += 4;
     std::int16_t nx, ny;
@@ -737,8 +748,8 @@ bool CGlobalBitmap::OpenTga(GLuint uiBitmapIndex, const std::wstring& filename, 
     wcsncpy(pNewBitmap->FileName, filename.c_str(), MAX_BITMAP_FILE_NAME - 1);
     pNewBitmap->FileName[MAX_BITMAP_FILE_NAME - 1] = L'\0';
 
-    pNewBitmap->Width = static_cast<float>(Width);
-    pNewBitmap->Height = static_cast<float>(Height);
+    pNewBitmap->Width = static_cast<float>(Width / logicalScale);
+    pNewBitmap->Height = static_cast<float>(Height / logicalScale);
     pNewBitmap->Components = 4;
     pNewBitmap->Ref = 1;
 

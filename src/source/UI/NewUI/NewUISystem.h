@@ -34,6 +34,7 @@
 #include "UI/NewUI/Events/NewUIEnterDevilSquare.h"
 #include "UI/NewUI/Events/NewUIBloodCastleEnter.h"
 #include "UI/NewUI/Events/NewUIBloodCastleTime.h"
+#include "UI/NewUI/Events/NewUIEventTimer.h"
 #include "UI/NewUI/Inventory/NewUITrade.h"
 #include "UI/NewUI/Events/NewUIKanturuEvent.h"
 #include "UI/NewUI/Events/NewUICatapultWindow.h"
@@ -177,6 +178,7 @@ namespace SEASON3B
         CNewUIEnterBloodCastle* m_pNewEnterBloodCastle;
         CNewUIEnterDevilSquare* m_pNewEnterDevilSquare;
         CNewUIBloodCastle* m_pNewBloodCastle;
+        CNewUIEventTimer* m_pEventTimer;
         CNewUITrade* m_pNewTrade;
         CNewUIKanturu2ndEnterNpc* m_pNewKanturu2ndEnterNpc;
         CNewUIKanturuInfoWindow* m_pNewKanturuInfoWindow;

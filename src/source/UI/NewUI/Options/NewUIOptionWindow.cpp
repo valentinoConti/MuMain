@@ -25,9 +25,7 @@ void ReinitializeFonts();
 void UpdateResolutionDependentSystems();
 void UpdateCursorClip();
 DWORD GetDesktopBitsPerPel();
-#ifndef _WIN32
 void MuApplyWindowResolution(unsigned int width, unsigned int height, bool windowed);
-#endif
 float ConvertX(float x);
 float ConvertY(float y);
 
@@ -44,6 +42,8 @@ static const struct { int width; int height; const wchar_t* label; } s_Resolutio
     { 1680, 1050, L"1680 x 1050" },
     { 1920, 1080, L"1920 x 1080" },
     { 2560, 1440, L"2560 x 1440" },
+    { 2560, 1600, L"2560 x 1600" },
+    { 3840, 2160, L"3840 x 2160 (4K)" },
 };
 static const int s_NumResolutions = sizeof(s_Resolutions) / sizeof(s_Resolutions[0]);
 
@@ -96,6 +96,41 @@ static const wchar_t* const* GetLanguageLabels()
     return labels;
 }
 
+// Selectable UI font sizes (px). px == 0 means "Auto" (resolution-based scaling,
+// the previous default behaviour). Applied via GameConfig + ReinitializeFonts().
+static const struct { int px; const wchar_t* label; } s_FontSizes[] = {
+    {  0, L"Auto"  },
+    { 12, L"12 px" },
+    { 13, L"13 px" },
+    { 14, L"14 px" },
+    { 15, L"15 px" },
+    { 16, L"16 px" },
+    { 17, L"17 px" },
+    { 18, L"18 px" },
+    { 20, L"20 px" },
+    { 22, L"22 px" },
+    { 24, L"24 px" },
+    { 26, L"26 px" },
+    { 28, L"28 px" },
+    { 30, L"30 px" },
+    { 32, L"32 px" },
+    { 34, L"34 px" },
+};
+static const int s_NumFontSizes = sizeof(s_FontSizes) / sizeof(s_FontSizes[0]);
+
+static const wchar_t* const* GetFontSizeLabels()
+{
+    static const wchar_t* labels[s_NumFontSizes] = {};
+    static bool initialized = false;
+    if (!initialized)
+    {
+        for (int i = 0; i < s_NumFontSizes; i++)
+            labels[i] = s_FontSizes[i].label;
+        initialized = true;
+    }
+    return labels;
+}
+
 namespace
 {
     // Volume levels are integers 0..MAX_VOLUME; the slider track is SLIDER_WIDTH pixels wide.
@@ -133,6 +168,14 @@ namespace
     // down compared to the pre-language layout. Used so the frame slats and
     // the click-hit rect stay in sync.
     constexpr int LANGUAGE_ROW_HEIGHT = 39;
+
+    // Font-size combo: a compact dropdown occupying the right side of the row
+    // that used to hold the "Slide Help" checkbox (same y as that checkbox).
+    constexpr int FONT_COMBO_X_LOCAL = 104;
+    constexpr int FONT_COMBO_Y_LOCAL = 155;
+    constexpr int FONT_COMBO_WIDTH   = 68;
+    constexpr int FONT_COMBO_HEIGHT  = 15;
+    constexpr int FONT_COMBO_MAX_VISIBLE = 6;  // scrollbar appears when list > this
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -155,6 +198,7 @@ SEASON3B::CNewUIOptionWindow::CNewUIOptionWindow()
     m_iResolutionIndex = FindCurrentResolutionIndex();
     m_bWindowedMode = (g_bUseWindowMode == TRUE);
     m_iLanguageIndex = FindCurrentLanguageIndex();
+    m_iFontSizeIndex = FindCurrentFontSizeIndex();
 }
 
 SEASON3B::CNewUIOptionWindow::~CNewUIOptionWindow()
@@ -174,6 +218,7 @@ bool SEASON3B::CNewUIOptionWindow::Create(CNewUIManager* pNewUIMng, int x, int y
     SetButtonInfo();
     InitResolutionCombo();
     InitLanguageCombo();
+    InitFontSizeCombo();
     Show(false);
     return true;
 }
@@ -204,6 +249,19 @@ void SEASON3B::CNewUIOptionWindow::InitLanguageCombo()
         LANG_COMBO_MAX_VISIBLE);
 }
 
+void SEASON3B::CNewUIOptionWindow::InitFontSizeCombo()
+{
+    m_FontSizeCombo.Setup(
+        m_Pos.x + FONT_COMBO_X_LOCAL,
+        m_Pos.y + FONT_COMBO_Y_LOCAL,
+        FONT_COMBO_WIDTH,
+        FONT_COMBO_HEIGHT,
+        GetFontSizeLabels(),
+        s_NumFontSizes,
+        m_iFontSizeIndex,
+        FONT_COMBO_MAX_VISIBLE);
+}
+
 void SEASON3B::CNewUIOptionWindow::SetButtonInfo()
 {
     m_BtnClose.ChangeTextBackColor(RGBA(255, 255, 255, 0));
@@ -230,6 +288,7 @@ void SEASON3B::CNewUIOptionWindow::SetPos(int x, int y)
     m_Pos.y = y;
     m_ResolutionCombo.SetPos(m_Pos.x + RES_COMBO_X_LOCAL, m_Pos.y + RES_COMBO_Y_LOCAL);
     m_LanguageCombo.SetPos(m_Pos.x + LANG_COMBO_X_LOCAL, m_Pos.y + LANG_COMBO_Y_LOCAL);
+    m_FontSizeCombo.SetPos(m_Pos.x + FONT_COMBO_X_LOCAL, m_Pos.y + FONT_COMBO_Y_LOCAL);
 }
 
 bool SEASON3B::CNewUIOptionWindow::UpdateMouseEvent()
@@ -263,6 +322,18 @@ bool SEASON3B::CNewUIOptionWindow::UpdateMouseEvent()
         return false;
     }
     if (m_LanguageCombo.IsMouseOverWidget())
+        return false;
+
+    // Font-size combo sits mid-window; its open dropdown overflows down over the
+    // render-level slider and effects checkbox. Process (and consume) it before
+    // those controls so a dropdown click doesn't also hit what's behind it.
+    if (m_FontSizeCombo.UpdateMouseEvent())
+    {
+        m_iFontSizeIndex = m_FontSizeCombo.GetSelectedIndex();
+        ApplyFontSize();
+        return false;
+    }
+    if (m_FontSizeCombo.IsMouseOverWidget())
         return false;
 
     bool oldWindowedMode = m_bWindowedMode;
@@ -447,10 +518,11 @@ bool SEASON3B::CNewUIOptionWindow::UpdateMouseEvent()
 void SEASON3B::CNewUIOptionWindow::HandleCheckboxInputs()
 {
     struct Checkbox { int yLocal; bool* target; };
+    // Note: the row at y=155 (formerly the "Slide Help" checkbox) is now the
+    // Font Size dropdown, handled by m_FontSizeCombo — no checkbox here anymore.
     const Checkbox boxes[] = {
         {  43, &m_bAutoAttack        },
         {  65, &m_bWhisperSound      },
-        { 155, &m_bSlideHelp         },
         { 238, &m_bRenderAllEffects  },
         { 300 + LANGUAGE_ROW_HEIGHT, &m_bWindowedMode      },
     };
@@ -595,6 +667,9 @@ void SEASON3B::CNewUIOptionWindow::OpenningProcess()
     m_iLanguageIndex = FindCurrentLanguageIndex();
     m_LanguageCombo.SetSelectedIndex(m_iLanguageIndex);
     m_LanguageCombo.Close();
+    m_iFontSizeIndex = FindCurrentFontSizeIndex();
+    m_FontSizeCombo.SetSelectedIndex(m_iFontSizeIndex);
+    m_FontSizeCombo.Close();
     m_bWindowedMode = (g_bUseWindowMode == TRUE);
 }
 
@@ -602,6 +677,7 @@ void SEASON3B::CNewUIOptionWindow::ClosingProcess()
 {
     m_ResolutionCombo.Close();
     m_LanguageCombo.Close();
+    m_FontSizeCombo.Close();
 }
 
 void SEASON3B::CNewUIOptionWindow::LoadImages()
@@ -705,7 +781,7 @@ void SEASON3B::CNewUIOptionWindow::RenderContents()
     g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 70, I18N::Game::BeepSoundForWhispering);
     g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 92, I18N::Game::SoundVolume);
     g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 120, I18N::Game::MusicVolume);
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 160, I18N::Game::SlideHelp);
+    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 160, L"Font Size");
     g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 182, I18N::Game::EffectLimitation);
     g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 242, I18N::Game::RenderFullEffects);
 
@@ -744,14 +820,8 @@ void SEASON3B::CNewUIOptionWindow::RenderButtons()
         RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + 65, 15, 15, 0, 15.f);
     }
 
-    if (m_bSlideHelp)
-    {
-        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + 155, 15, 15, 0, 0);
-    }
-    else
-    {
-        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + 155, 15, 15, 0, 15.f);
-    }
+    // (The "Slide Help" checkbox at y+155 was replaced by the Font Size combo,
+    // which is drawn with the other combo boxes below.)
 
     RenderImage(IMAGE_OPTION_VOLUME_BACK, m_Pos.x + 33, m_Pos.y + 104, 124.f, 16.f);
     if (m_iVolumeLevel > 0)
@@ -796,7 +866,7 @@ void SEASON3B::CNewUIOptionWindow::RenderButtons()
     // physically below an open one would draw its closed field on top of
     // that open dropdown's list (since they overlap in screen space when
     // the upper one expands downward).
-    CNewUIComboBox* combos[] = { &m_ResolutionCombo, &m_LanguageCombo };
+    CNewUIComboBox* combos[] = { &m_ResolutionCombo, &m_LanguageCombo, &m_FontSizeCombo };
     for (auto* c : combos) if (!c->IsOpen()) c->Render();
     for (auto* c : combos) if (c->IsOpen())  c->Render();
 }
@@ -883,6 +953,26 @@ int SEASON3B::CNewUIOptionWindow::FindCurrentLanguageIndex()
     return 0;  // default to English
 }
 
+int SEASON3B::CNewUIOptionWindow::FindCurrentFontSizeIndex()
+{
+    const int px = GameConfig::GetInstance().GetFontSize();
+    for (int i = 0; i < s_NumFontSizes; ++i)
+    {
+        if (s_FontSizes[i].px == px)
+            return i;
+    }
+    return 0;  // Auto
+}
+
+void SEASON3B::CNewUIOptionWindow::ApplyFontSize()
+{
+    GameConfig::GetInstance().SetFontSize(s_FontSizes[m_iFontSizeIndex].px);
+    GameConfig::GetInstance().Save();
+    // Recreate the fonts + text renderer at the new size (same path used when the
+    // resolution changes). 0 px => automatic resolution-based sizing.
+    ReinitializeFonts();
+}
+
 void SEASON3B::CNewUIOptionWindow::ApplyLanguage()
 {
     const char* code = s_Languages[m_iLanguageIndex].code;
@@ -938,12 +1028,11 @@ void SEASON3B::CNewUIOptionWindow::ApplyResolution()
     // Resize the window to the new dimensions.
     if (g_hWnd && g_bUseWindowMode)
     {
-        RECT windowRect = { 0, 0, (LONG)newWidth, (LONG)newHeight };
-        AdjustWindowRect(&windowRect, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_BORDER | WS_CLIPCHILDREN, FALSE);
-        SetWindowPos(g_hWnd, HWND_TOP, 0, 0,
-                     windowRect.right - windowRect.left,
-                     windowRect.bottom - windowRect.top,
-                     SWP_NOMOVE | SWP_NOZORDER);
+        // Windowed resize goes through SDL (which owns the window). A raw Win32
+        // SetWindowPos is clamped by SDL and no longer drives a WM_SIZE, so
+        // WindowWidth/Height would never refresh; MuApplyWindowResolution updates
+        // them synchronously via HandleWindowResize().
+        MuApplyWindowResolution(newWidth, newHeight, true);
     }
     else if (g_hWnd)
     {
@@ -952,10 +1041,9 @@ void SEASON3B::CNewUIOptionWindow::ApplyResolution()
                      SWP_SHOWWINDOW | SWP_FRAMECHANGED);
     }
 
-    // SetWindowPos above triggered WM_SIZE synchronously, which already set
-    // WindowWidth/Height/screen rates and called ReinitializeFonts() and
-    // UpdateResolutionDependentSystems(). Don't repeat that work here — just
-    // persist the new size in config.
+    // WindowWidth/Height are now current: windowed mode refreshed them via
+    // MuApplyWindowResolution() -> HandleWindowResize(); fullscreen refreshes them
+    // from the SDL resize event that ChangeDisplaySettings() triggers. Persist.
     GameConfig::GetInstance().SetWindowSize(WindowWidth, WindowHeight);
     GameConfig::GetInstance().Save();
 

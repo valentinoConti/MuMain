@@ -5,10 +5,11 @@
 #include <imagehlp.h>
 #endif
 
+#include <cstdint>
+
 #include "GameConfigConstants.h"
 #include "Core/Platform/WinCompat.h"
 #include "Core/Platform/WinIni.h"  // private-profile (.ini) API
-#include "Core/Platform/Dpapi.h"   // DPAPI credential crypto (no-op off Windows)
 
 GameConfig& GameConfig::GetInstance()
 {
@@ -70,6 +71,7 @@ void GameConfig::Load()
     m_serverPort = ReadInt(CfgSectionConnectionSettings, CfgKeyServerPort, CfgDefaultServerPort);
 
     m_uiLocale = ReadString(CfgSectionUI, CfgKeyUILocale, CfgDefaultUILocale);
+    m_fontSize = ReadInt(CfgSectionUI, CfgKeyFontSize, CfgDefaultFontSize);
 
     m_zoom = ReadInt(CfgSectionCamera, CfgKeyZoom, CfgDefaultZoom);
 
@@ -108,6 +110,7 @@ void GameConfig::Save()
     WriteInt(CfgSectionConnectionSettings, CfgKeyServerPort, m_serverPort);
 
     WriteString(CfgSectionUI, CfgKeyUILocale, m_uiLocale);
+    WriteInt(CfgSectionUI, CfgKeyFontSize, m_fontSize);
 
     WriteInt(CfgSectionCamera, CfgKeyZoom, m_zoom);
 }
@@ -171,6 +174,11 @@ void GameConfig::SetServerPort(int port)
 void GameConfig::SetZoom(int zoom)
 {
     m_zoom = zoom;
+}
+
+void GameConfig::SetFontSize(int size)
+{
+    m_fontSize = size;
 }
 
 // Helper function to convert binary data to hex string
@@ -292,48 +300,84 @@ void GameConfig::RemoveObsoleteSection(const wchar_t* section)
     WritePrivateProfileStringW(section, nullptr, nullptr, m_configPath.wstring().c_str());
 }
 
+// ---------------------------------------------------------------------------
+// Credential obfuscation (replaces the previous Windows DPAPI encryption).
+//
+// Saved login/password are NO LONGER machine-bound. They are obfuscated with a
+// FIXED key so the value is identical on every install and an external account-
+// manager tool can produce/read them. The transform is deliberately reversible
+// (the client must recover the real password to send it to the game server) and
+// only keeps literal plaintext out of config.ini -- this is obfuscation, not
+// security.
+//
+// Stored format of [LOGIN] EncryptedUsername / EncryptedPassword:
+//   plain  = ASCII/Latin-1 bytes of the string (one byte per character)
+//   framed = 0x4D 0x55  ("MU" marker)  followed by plain
+//   cipher = framed XOR SplitMix64-keystream(seed = kCredKeySeed)
+//   value  = uppercase hex of cipher
+// To decode, reverse it and require the "MU" marker -- so a pre-existing DPAPI
+// blob (which won't carry the marker) is treated as "no saved credentials" and
+// the user simply re-enters once.
+// ---------------------------------------------------------------------------
+namespace
+{
+    // Fixed, non-machine-bound key ("MuDefini" in ASCII). If you change this,
+    // every saved credential AND the account-manager tool must use the new value.
+    constexpr std::uint64_t kCredKeySeed = 0x4D75446566696E69ull;
+    constexpr BYTE kCredMarker0 = 0x4D; // 'M'
+    constexpr BYTE kCredMarker1 = 0x55; // 'U'
+
+    // SplitMix64 keystream XOR seeded from the fixed key. Symmetric: applying it
+    // once encrypts, applying it again decrypts.
+    void CredKeystreamXor(BYTE* data, size_t len)
+    {
+        std::uint64_t s = kCredKeySeed;
+        for (size_t i = 0; i < len; )
+        {
+            s += 0x9E3779B97F4A7C15ull;
+            std::uint64_t z = s;
+            z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
+            z = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
+            z = z ^ (z >> 31);
+            for (int b = 0; b < 8 && i < len; ++b, ++i)
+                data[i] ^= static_cast<BYTE>(z >> (b * 8));
+        }
+    }
+}
+
 std::wstring GameConfig::DecryptSetting(const std::wstring& hexInput)
 {
     if (hexInput.empty()) return L"";
 
-    // Convert Hex String back to Binary Blob
-    std::vector<BYTE> encryptedData = HexToBinary(hexInput);
-    if (encryptedData.empty()) return L"";
+    std::vector<BYTE> data = HexToBinary(hexInput);
+    if (data.size() < 2) return L"";  // too short to hold the marker
 
-    DATA_BLOB dataIn, dataOut;
-    dataIn.pbData = encryptedData.data();
-    dataIn.cbData = static_cast<DWORD>(encryptedData.size());
+    CredKeystreamXor(data.data(), data.size());
 
-    // Decrypt using Windows DPAPI
-    if (CryptUnprotectData(&dataIn, nullptr, nullptr, nullptr, nullptr, 0, &dataOut))
-    {
-        std::wstring result(reinterpret_cast<wchar_t*>(dataOut.pbData), dataOut.cbData / sizeof(wchar_t));
-        LocalFree(dataOut.pbData); // Safety: Windows allocated this, we free it
-        // The decrypted string might contain the null terminator, let's remove it if it exists.
-        if (!result.empty() && result.back() == L'\0') {
-            result.pop_back();
-        }
-        return result;
-    }
+    // Require the "MU" marker. Anything else (e.g. an old machine-bound DPAPI
+    // blob) is treated as "no saved credentials".
+    if (data[0] != kCredMarker0 || data[1] != kCredMarker1)
+        return L"";
 
-    return L"";
+    std::wstring result;
+    result.reserve(data.size() - 2);
+    for (size_t i = 2; i < data.size(); ++i)
+        result.push_back(static_cast<wchar_t>(data[i]));
+    return result;
 }
 
 std::wstring GameConfig::EncryptSetting(const wchar_t* input)
 {
     if (!input || wcslen(input) == 0) return L"";
 
-    DATA_BLOB dataIn, dataOut;
-    dataIn.cbData = static_cast<DWORD>((wcslen(input) + 1) * sizeof(wchar_t));
-    dataIn.pbData = reinterpret_cast<BYTE*>(const_cast<wchar_t*>(input));
+    std::vector<BYTE> data;
+    data.push_back(kCredMarker0);
+    data.push_back(kCredMarker1);
+    for (const wchar_t* p = input; *p != L'\0'; ++p)
+        data.push_back(static_cast<BYTE>(*p & 0xFF));  // ASCII/Latin-1 credentials
 
-    if (CryptProtectData(&dataIn, nullptr, nullptr, nullptr, nullptr, 0, &dataOut))
-    {
-        std::wstring hexResult = BinaryToHex(dataOut.pbData, dataOut.cbData);
-        LocalFree(dataOut.pbData);
-        return hexResult;
-    }
-    return L"";
+    CredKeystreamXor(data.data(), data.size());
+    return BinaryToHex(data.data(), static_cast<DWORD>(data.size()));
 }
 
 void GameConfig::EncryptAndSaveCredentials(const wchar_t* user, const wchar_t* pass)

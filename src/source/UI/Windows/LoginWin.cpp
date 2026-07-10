@@ -21,9 +21,6 @@
 
 
 #include "Network/Server/ServerListManager.h"
-#ifdef _WIN32
-#include <dpapi.h>
-#endif
 
 #include "Data/GameConfig/GameConfig.h"
 #include "Data/GameConfig/GameConfigConstants.h"
@@ -298,5 +295,9 @@ void CLoginWin::ConnectConnectionServer()
 {
     LogIn = 0;
     CurrentProtocolState = REQUEST_JOIN_SERVER;
+    // Return to the connect server (server list) rather than whatever endpoint a
+    // prior auto-reconnect left in szServerIpAddress (possibly the game server).
+    szServerIpAddress = szConnectServerIpAddress;
+    g_ServerPort = g_ConnectServerPort;
     CreateSocket(szServerIpAddress, g_ServerPort);
 }

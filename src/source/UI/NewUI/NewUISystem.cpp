@@ -72,6 +72,7 @@ CNewUISystem::CNewUISystem()
     m_pNewEnterBloodCastle = nullptr;
     m_pNewEnterDevilSquare = nullptr;
     m_pNewBloodCastle = nullptr;
+    m_pEventTimer = nullptr;
     m_pNewTrade = nullptr;
     m_pNewKanturu2ndEnterNpc = nullptr;
     m_pNewCatapultWindow = nullptr;
@@ -299,6 +300,10 @@ bool CNewUISystem::LoadMainSceneInterface()
 
     m_pNewBloodCastle = new CNewUIBloodCastle;
     if (m_pNewBloodCastle->Create(m_pNewUIMng, 640 - 127, 480 - 132) == false)
+        return false;
+
+    m_pEventTimer = new CNewUIEventTimer;
+    if (m_pEventTimer->Create(m_pNewUIMng, 640 - 190 - 2, 100) == false)
         return false;
 
     m_pNewTrade = new CNewUITrade;
@@ -570,6 +575,7 @@ void CNewUISystem::UnloadMainSceneInterface()
     SAFE_DELETE(m_pNewEnterBloodCastle);
     SAFE_DELETE(m_pNewEnterDevilSquare);
     SAFE_DELETE(m_pNewBloodCastle);
+    SAFE_DELETE(m_pEventTimer);
     SAFE_DELETE(m_pNewChaosCastleTime);
     SAFE_DELETE(m_pNewCommandWindow);
     SAFE_DELETE(m_pNewHeroPositionInfo);
@@ -907,6 +913,10 @@ void CNewUISystem::Show(DWORD dwKey)
     {
         HideAllGroupA();
         g_pGuildInfoWindow->OpenningProcess();
+    }
+    else if (dwKey == INTERFACE_EVENTTIMER)
+    {
+        HideAllGroupA();
     }
     else if (dwKey == INTERFACE_WINDOW_MENU)
     {
@@ -1610,6 +1620,7 @@ void CNewUISystem::HideAllGroupA()
         INTERFACE_GUARDSMAN,
         INTERFACE_COMMAND,
         INTERFACE_GUILDINFO,
+        INTERFACE_EVENTTIMER,
         INTERFACE_KANTURU2ND_ENTERNPC,
         INTERFACE_DUELWATCH,
         INTERFACE_DOPPELGANGER_NPC,
@@ -1670,6 +1681,7 @@ void CNewUISystem::HideAllGroupB()
         INTERFACE_GUARDSMAN,
         INTERFACE_COMMAND,
         INTERFACE_GUILDINFO,
+        INTERFACE_EVENTTIMER,
         INTERFACE_KANTURU2ND_ENTERNPC,
         INTERFACE_CURSEDTEMPLE_NPC,
         INTERFACE_DUELWATCH,
@@ -1707,6 +1719,7 @@ void CNewUISystem::HideGroupBeforeOpenInterface()
 {
     DWORD dwGroupC[] =
     {
+        INTERFACE_EVENTTIMER,
         INTERFACE_PARTY,
         INTERFACE_COMMAND,
         INTERFACE_GUILDINFO,

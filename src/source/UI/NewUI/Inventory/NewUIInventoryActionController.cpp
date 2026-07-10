@@ -822,7 +822,6 @@ bool CNewUIInventoryActionController::TryConsumeItem(CNewUIInventoryCtrl* target
         bool bReadBookGem = true;
 
         if (pItem->Type == ITEM_SCROLL_OF_NOVA
-            || pItem->Type == ITEM_SCROLL_OF_WIZARDRY_ENHANCE
             || pItem->Type == ITEM_CRYSTAL_OF_MULTI_SHOT
             || pItem->Type == ITEM_CRYSTAL_OF_RECOVERY
             || pItem->Type == ITEM_CRYSTAL_OF_DESTRUCTION)
@@ -856,7 +855,7 @@ bool CNewUIInventoryActionController::TryConsumeItem(CNewUIInventoryCtrl* target
             return true;
         }
 
-        return false;
+        return true;   // learnable scroll/crystal that can't be used yet: do nothing, never drop it
     }
 
     if (pItem->Type == ITEM_FRUITS)

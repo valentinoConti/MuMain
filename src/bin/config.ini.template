@@ -11,5 +11,10 @@ Windowed=1
 SoundVolume=5
 MusicVolume=5
 [CONNECTION SETTINGS]
-ServerIP=127.127.127.127
+ServerIP=216.238.127.130
 ServerPort=44406
+[UI]
+Locale=en
+FontSize=0
+[Camera]
+Zoom=800
