@@ -1,11 +1,10 @@
 [LOGIN]
-RememberMe=0
 Language=Eng
-EncryptedUsername=
-EncryptedPassword=
+EncryptedUsername1=
+EncryptedPassword1=
 [Window]
-Width=1024
-Height=768
+Width=1600
+Height=900
 Windowed=1
 [Audio]
 SoundVolume=5

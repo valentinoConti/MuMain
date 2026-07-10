@@ -6,6 +6,7 @@
 #include "UI/Widgets/Win.h"
 
 #include "UI/Widgets/Button.h"
+#include "Data/GameConfig/GameConfigConstants.h"  // kMaxSavedAccounts
 
 class CUITextInputBox;
 
@@ -14,7 +15,10 @@ class CLoginWin : public CWin
 protected:
     CSprite		m_asprInputBox[2];
     CButton		m_aBtn[2];
-    CButton     m_aBtnRememberMe;
+    // One quick-login button per launcher-saved account (captioned with the
+    // username). Only m_accountBtnCount of them are created/shown.
+    CButton     m_accountBtns[kMaxSavedAccounts];
+    int         m_accountBtnCount = 0;
     CUITextInputBox* m_pUsernameInputBox, * m_pPasswordInputBox;
 
 public:
@@ -39,5 +43,7 @@ protected:
     void UpdateWhileShow(double dDeltaTick);
     void RenderControls();
     void RequestLogin();
+    void QuickLogin(int index);   // log in with a saved account (button press)
+    void DoLogin();               // shared: validate m_Username/m_Password and send
     void CancelLogin();
 };

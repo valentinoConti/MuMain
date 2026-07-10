@@ -3822,7 +3822,7 @@ void RenderTournamentInterface()
 
             x = (float)GetScreenWidth() / 2.f;
             y = 350.f;
-            g_pRenderText->SetFont(g_hFontBig);
+            g_pRenderText->SetFont(g_hFontBold);
             g_pRenderText->SetBgColor(0, 0, 0, 200); // solid black background box
             if (g_wtMatchTimeLeft.m_Time < 60)
             {

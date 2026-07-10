@@ -1,5 +1,10 @@
 #pragma once
 
+// Maximum number of launcher-saved account slots the client reads
+// (EncryptedUsername1..N / EncryptedPassword1..N) and shows as quick-login
+// buttons on the login screen. Slots may be sparse (e.g. only #3 present).
+inline constexpr int kMaxSavedAccounts = 3;
+
 namespace CfgSections
 {
     inline constexpr wchar_t CfgSectionWindow[]     = L"Window";

@@ -29,17 +29,18 @@ public:
     void SetMusicVolume(int level);
 
     // Login
-    bool GetRememberMe() const { return m_rememberMe; }
-    void SetRememberMe(bool remember);
-
     std::wstring GetLanguageSelection() const { return m_languageSelection; }
     void SetLanguageSelection(const std::wstring& lang);
 
-    void SetEncryptedUsername(const std::wstring& encryptedUsername);
-    std::wstring GetEncryptedUsername() const { return m_encryptedUsername; }
-
-    void SetEncryptedPassword(const std::wstring& encryptedPassword);
-    std::wstring GetEncryptedPassword() const { return m_encryptedPassword; }
+    // Launcher-saved accounts, read from the numbered EncryptedUsername{n}/
+    // EncryptedPassword{n} slots at load time (decrypted, ready to log in with).
+    // Order follows the slot numbers; sparse slots are skipped.
+    struct SavedAccount
+    {
+        std::wstring username;
+        std::wstring password;
+    };
+    const std::vector<SavedAccount>& GetSavedAccounts() const { return m_savedAccounts; }
 
     // Connection
     std::wstring GetServerIP() const { return m_serverIP; }
@@ -66,9 +67,6 @@ public:
     static std::wstring BinaryToHex(const BYTE* data, DWORD size);
     static std::vector<BYTE> HexToBinary(const std::wstring& hex);
 
-    void DecryptCredentials(wchar_t* outUser, wchar_t* outPass, size_t userBufSize, size_t passBufSize);
-    void EncryptAndSaveCredentials(const wchar_t* user, const wchar_t* pass);
-
 private:
     GameConfig();
     GameConfig(const GameConfig&) = delete;
@@ -83,10 +81,8 @@ private:
     int  m_soundVolume;
     int  m_musicVolume;
 
-    bool m_rememberMe;
     std::wstring m_languageSelection;
-    std::wstring m_encryptedUsername;
-    std::wstring m_encryptedPassword;
+    std::vector<SavedAccount> m_savedAccounts;
 
     std::wstring m_serverIP;
     int m_serverPort;

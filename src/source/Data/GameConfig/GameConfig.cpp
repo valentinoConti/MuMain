@@ -62,10 +62,28 @@ void GameConfig::Load()
     m_soundVolume  = ReadInt(CfgSectionAudio, CfgKeySoundVolume, CfgDefaultSoundVolume);
     m_musicVolume  = ReadInt(CfgSectionAudio, CfgKeyMusicVolume, CfgDefaultMusicVolume);
 
-    m_rememberMe        = ReadBool(CfgSectionLogin, CfgKeyRememberMe, CfgDefaultRememberMe);
     m_languageSelection = ReadString(CfgSectionLogin, CfgKeyLanguage, CfgDefaultLanguage);
-    m_encryptedUsername = ReadString(CfgSectionLogin, CfgKeyEncryptedUsername, CfgDefaultEncryptedUsername);
-    m_encryptedPassword = ReadString(CfgSectionLogin, CfgKeyEncryptedPassword, CfgDefaultEncryptedPassword);
+
+    // Launcher-saved accounts: numbered slots EncryptedUsername{n}/EncryptedPassword{n}
+    // (1..kMaxSavedAccounts). Slots may be sparse; a slot only counts when BOTH its
+    // username and password decode successfully.
+    m_savedAccounts.clear();
+    for (int n = 1; n <= kMaxSavedAccounts; ++n)
+    {
+        wchar_t userKey[48], passKey[48];
+        swprintf_s(userKey, L"%ls%d", CfgKeyEncryptedUsername, n);
+        swprintf_s(passKey, L"%ls%d", CfgKeyEncryptedPassword, n);
+
+        std::wstring encUser = ReadString(CfgSectionLogin, userKey, L"");
+        std::wstring encPass = ReadString(CfgSectionLogin, passKey, L"");
+        if (encUser.empty() || encPass.empty())
+            continue;
+
+        std::wstring user = DecryptSetting(encUser);
+        std::wstring pass = DecryptSetting(encPass);
+        if (!user.empty() && !pass.empty())
+            m_savedAccounts.push_back({ user, pass });
+    }
 
     m_serverIP   = ReadString(CfgSectionConnectionSettings, CfgKeyServerIP, CfgDefaultServerIP);
     m_serverPort = ReadInt(CfgSectionConnectionSettings, CfgKeyServerPort, CfgDefaultServerPort);
@@ -85,6 +103,9 @@ void GameConfig::Load()
     RemoveObsoleteKey(CfgSectionAudio,    L"VolumeLevel");    // legacy single-volume key
     RemoveObsoleteKey(CfgSectionLogin,    L"Version");        // launcher metadata, never read by client
     RemoveObsoleteKey(CfgSectionLogin,    L"TestVersion");    // launcher metadata, never read by client
+    RemoveObsoleteKey(CfgSectionLogin,    L"RememberMe");         // replaced by launcher-saved account slots
+    RemoveObsoleteKey(CfgSectionLogin,    L"EncryptedUsername");  // old single-account key -> EncryptedUsername{n}
+    RemoveObsoleteKey(CfgSectionLogin,    L"EncryptedPassword");  // old single-account key -> EncryptedPassword{n}
     RemoveObsoleteSection(CfgSectionGraphics);                // empty after RenderTextType + ColorDepth removal
     RemoveObsoleteSection(L"PARTITION");                      // launcher metadata, never read by client
 }
@@ -101,10 +122,9 @@ void GameConfig::Save()
     WriteInt(CfgSectionAudio, CfgKeySoundVolume, m_soundVolume);
     WriteInt(CfgSectionAudio, CfgKeyMusicVolume, m_musicVolume);
 
-    WriteBool(CfgSectionLogin, CfgKeyRememberMe, m_rememberMe);
+    // Account credentials are written by the external launcher (numbered slots),
+    // not by the client, so only the language selection is persisted here.
     WriteString(CfgSectionLogin, CfgKeyLanguage, m_languageSelection);
-    WriteString(CfgSectionLogin, CfgKeyEncryptedUsername, m_encryptedUsername);
-    WriteString(CfgSectionLogin, CfgKeyEncryptedPassword, m_encryptedPassword);
 
     WriteString(CfgSectionConnectionSettings, CfgKeyServerIP, m_serverIP);
     WriteInt(CfgSectionConnectionSettings, CfgKeyServerPort, m_serverPort);
@@ -136,11 +156,6 @@ void GameConfig::SetMusicVolume(int level)
     m_musicVolume = level;
 }
 
-void GameConfig::SetRememberMe(bool remember)
-{
-    m_rememberMe = remember;
-}
-
 void GameConfig::SetLanguageSelection(const std::wstring& lang)
 {
     m_languageSelection = lang;
@@ -149,16 +164,6 @@ void GameConfig::SetLanguageSelection(const std::wstring& lang)
 void GameConfig::SetUILocale(const std::wstring& locale)
 {
     m_uiLocale = locale;
-}
-
-void GameConfig::SetEncryptedUsername(const std::wstring& encryptedUsername)
-{
-    m_encryptedUsername = encryptedUsername;
-}
-
-void GameConfig::SetEncryptedPassword(const std::wstring& encryptedPassword)
-{
-    m_encryptedPassword = encryptedPassword;
 }
 
 void GameConfig::SetServerIP(const std::wstring& ip)
@@ -228,21 +233,6 @@ std::vector<BYTE> GameConfig::HexToBinary(const std::wstring& hex)
     }
 
     return binary;
-}
-
-void GameConfig::DecryptCredentials(wchar_t* outUser, wchar_t* outPass, size_t userBufSize, size_t passBufSize)
-{
-    // Decrypt Username
-    std::wstring user = DecryptSetting(GetEncryptedUsername());
-    if (!user.empty()) {
-        wcsncpy_s(outUser, userBufSize, user.c_str(), _TRUNCATE);
-    }
-
-    // Decrypt Password
-    std::wstring pass = DecryptSetting(GetEncryptedPassword());
-    if (!pass.empty()) {
-        wcsncpy_s(outPass, passBufSize, pass.c_str(), _TRUNCATE);
-    }
 }
 
 // Helper functions using Windows INI API
@@ -380,15 +370,3 @@ std::wstring GameConfig::EncryptSetting(const wchar_t* input)
     return BinaryToHex(data.data(), static_cast<DWORD>(data.size()));
 }
 
-void GameConfig::EncryptAndSaveCredentials(const wchar_t* user, const wchar_t* pass)
-{
-    std::wstring encUser = EncryptSetting(user);
-    std::wstring encPass = EncryptSetting(pass);
-
-    if (!encUser.empty() && !encPass.empty())
-    {
-        SetEncryptedUsername(encUser);
-        SetEncryptedPassword(encPass);
-        Save(); // Actually write to the .ini file
-    }
-}

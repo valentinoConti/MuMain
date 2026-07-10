@@ -1505,15 +1505,12 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int nC
     m_MusicOnOff = (GameConfig::GetInstance().GetMusicVolume() > 0) ? 1 : 0;
 
     // Apply login settings from INI
-    m_RememberMe = GameConfig::GetInstance().GetRememberMe() ? 1 : 0;
     std::wstring langSelection = GameConfig::GetInstance().GetLanguageSelection();
     wcsncpy_s(g_aszMLSelection, langSelection.c_str(), MAX_LANGUAGE_NAME_LENGTH - 1);
     g_strSelectedML = g_aszMLSelection;
 
-    if (m_RememberMe)
-    {
-        GameConfig::GetInstance().DecryptCredentials(m_Username, m_Password, _countof(m_Username), _countof(m_Password));
-    }
+    // Credentials are no longer auto-filled at startup. Saved accounts (written by
+    // the launcher) appear as quick-login buttons on the login screen instead.
 
     g_fScreenRate_x = (float)WindowWidth / (float)REFERENCE_WIDTH;
     g_fScreenRate_y = (float)WindowHeight / (float)REFERENCE_HEIGHT;
