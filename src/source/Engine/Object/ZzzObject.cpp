@@ -474,7 +474,9 @@ void Draw_RenderObject(OBJECT* o, bool Translate, int Select, int ExtraMon)
         {
             if (o->Type == MODEL_DRAGON_)
             {
-                Vector(0.02f, 0.05f, 0.15f, b->BodyLight);
+                // Golden dragons (was a near-black dark-blue tint that made them
+                // read as black silhouettes).
+                Vector(0.45f, 0.28f, 0.12f, b->BodyLight);
             }
         }
         if (gMapManager.InDevilSquare())
