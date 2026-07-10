@@ -3071,82 +3071,39 @@ void RenderObjectVisual(OBJECT* o)
     case WD_10HEAVEN:
         switch (o->Type)
         {
+        // Icarus cloud tiles. Each tile emits a one-time burst of BITMAP_CLOUD
+        // particles that forms the cloud carpet around it; HiddenMesh == -2 marks the
+        // tile "already emitted" (and hides its placeholder mesh).
+        //
+        // IMPORTANT: only flag the tile emitted once a particle was actually created.
+        // CreateParticle returns false when the shared particle pool is momentarily
+        // full; the stock code set HiddenMesh = -2 regardless, so a tile that failed to
+        // spawn anything was flagged done forever. Because a tile is only re-armed by
+        // one of its OWN particles dying, a tile with zero particles could never
+        // re-arm and stayed permanently cloudless. Roaming the map corrupted tile after
+        // tile this way, so clouds vanished while moving and never returned, even at
+        // spawn. Retrying until the tile wins a pool slot fixes that; the pool is kept
+        // free by the distance-based recycling in the BITMAP_CLOUD move handler.
         case    0:
-            if (o->HiddenMesh != -2)
-            {
-                vec3_t  Light;
-                Vector(0.1f, 0.1f, 0.1f, Light);
-                for (int i = 0; i < 20; ++i)
-                {
-                    CreateParticleFpsChecked(BITMAP_CLOUD, o->Position, o->Angle, Light, 0, o->Scale, o);
-                }
-            }
-            o->HiddenMesh = -2;
-            break;
-
         case    1:
-            if (o->HiddenMesh != -2)
-            {
-                vec3_t  Light;
-                Vector(0.1f, 0.1f, 0.1f, Light);
-                for (int i = 0; i < 20; ++i)
-                {
-                    CreateParticleFpsChecked(BITMAP_CLOUD, o->Position, o->Angle, Light, 1, o->Scale, o);
-                }
-            }
-            o->HiddenMesh = -2;
-            break;
-
         case    2:
-            if (o->HiddenMesh != -2)
-            {
-                vec3_t  Light;
-                Vector(0.1f, 0.1f, 0.1f, Light);
-                for (int i = 0; i < 20; ++i)
-                {
-                    CreateParticleFpsChecked(BITMAP_CLOUD, o->Position, o->Angle, Light, 2, o->Scale, o);
-                }
-            }
-            o->HiddenMesh = -2;
-            break;
-
         case    3:
-            if (o->HiddenMesh != -2)
-            {
-                vec3_t  Light;
-                Vector(0.1f, 0.1f, 0.1f, Light);
-                for (int i = 0; i < 10; ++i)
-                {
-                    CreateParticleFpsChecked(BITMAP_CLOUD, o->Position, o->Angle, Light, 3, o->Scale, o);
-                }
-            }
-            o->HiddenMesh = -2;
-            break;
-
         case    4:
-            if (o->HiddenMesh != -2)
-            {
-                vec3_t  Light;
-                Vector(0.1f, 0.1f, 0.1f, Light);
-                for (int i = 0; i < 10; ++i)
-                {
-                    CreateParticleFpsChecked(BITMAP_CLOUD, o->Position, o->Angle, Light, 4, o->Scale, o);
-                }
-            }
-            o->HiddenMesh = -2;
-            break;
-
         case    5:
             if (o->HiddenMesh != -2)
             {
                 vec3_t  Light;
                 Vector(0.1f, 0.1f, 0.1f, Light);
-                for (int i = 0; i < 10; ++i)
+                const int cloudCount = (o->Type <= 2) ? 20 : 10;
+                bool bCreated = false;
+                for (int i = 0; i < cloudCount; ++i)
                 {
-                    CreateParticleFpsChecked(BITMAP_CLOUD, o->Position, o->Angle, Light, 5, o->Scale, o);
+                    if (CreateParticle(BITMAP_CLOUD, o->Position, o->Angle, Light, o->Type, o->Scale, o))
+                        bCreated = true;
                 }
+                if (bCreated)
+                    o->HiddenMesh = -2;
             }
-            o->HiddenMesh = -2;
             break;
 
         case    10:

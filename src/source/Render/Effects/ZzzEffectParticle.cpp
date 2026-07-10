@@ -3103,9 +3103,15 @@ int CreateParticle(int Type, vec3_t Position, vec3_t Angle, vec3_t Light, int Su
                         o->LifeTime = 30;
                         o->Gravity = (float)(rand() % 1000);
 
-                        o->Position[0] += ((float)(rand() % 500 - 250)) * FPS_ANIMATION_FACTOR;//*Scale)
-                        o->Position[1] += ((float)(rand() % 500 - 250)) * FPS_ANIMATION_FACTOR;//*Scale)
-                        o->Position[2] += ((float)(rand() % 20 + 20)) * FPS_ANIMATION_FACTOR;
+                        // One-time spawn scatter: this is a placement offset, not
+                        // per-frame motion, so it must NOT be scaled by
+                        // FPS_ANIMATION_FACTOR. At high FPS that factor is ~0.2 and
+                        // collapses the ±250 spread to ~±50, piling every cloud particle
+                        // onto one spot (the "compressed circle" seen while moving). At
+                        // load the framerate dips so it happened to spread correctly.
+                        o->Position[0] += (float)(rand() % 500 - 250);
+                        o->Position[1] += (float)(rand() % 500 - 250);
+                        o->Position[2] += (float)(rand() % 20 + 20);
 
                         o->StartPosition[1] = (rand() % 100) / 100.f;
                         o->StartPosition[2] = o->Position[2];
@@ -7910,7 +7916,18 @@ void MoveParticles()
                 else
                 {
                     Luminosity = 0.6f;
-                    if (o->Target->Visible == true)
+                    // Keep this cloud alive only while its source tile is visible AND
+                    // near the hero. The tile's Visible flag goes stale-true once it
+                    // scrolls off the visible object blocks (it stops being updated), so
+                    // relying on it alone refreshes off-screen clouds forever; they never
+                    // die, never release their pool slot, and never re-arm their tile.
+                    // The distance gate forces distant clouds to expire so the shared
+                    // pool recycles around wherever the hero actually is, leaving room
+                    // for approaching tiles to emit.
+                    float fCloudDX = o->Position[0] - Hero->Object.Position[0];
+                    float fCloudDY = o->Position[1] - Hero->Object.Position[1];
+                    bool bCloudNear = (fCloudDX * fCloudDX + fCloudDY * fCloudDY) < (4500.f * 4500.f);
+                    if (o->Target->Visible == true && bCloudNear)
                     {
                         o->LifeTime = 50;
                     }
