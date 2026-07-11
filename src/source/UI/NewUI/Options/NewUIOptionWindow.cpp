@@ -169,7 +169,7 @@ namespace
     // Both the render (RenderButtons) and the hit test (HandleRenderLevelSlider)
     // read these, so size/position stay in sync.
     constexpr int RENDER_SLIDER_X_LOCAL = 60;
-    constexpr int RENDER_SLIDER_Y_LOCAL = 191;
+    constexpr int RENDER_SLIDER_Y_LOCAL = 165;
     constexpr int RENDER_SLIDER_WIDTH = 70;
     constexpr int RENDER_SLIDER_HEIGHT = 15;
     constexpr float RENDER_LEVEL_MAX = 5.f;
@@ -179,40 +179,39 @@ namespace
     constexpr int EFFECT_BAR_SRC_WIDTH  = 141;
     constexpr int EFFECT_BAR_SRC_HEIGHT = 29;
 
+    // Bottom combo group, stacked full-width at an even 39px row pitch:
+    //   Font Family (226) -> Font Size (265) -> Language (304) -> Resolution (343).
+    // The two font controls are grouped together; Windowed mode was removed from
+    // this window (client stays windowed, which looks identical at native res).
+
     // Resolution combo box placement (relative to m_Pos)
     constexpr int RES_COMBO_X_LOCAL = 22;
-    constexpr int RES_COMBO_Y_LOCAL = 335;
+    constexpr int RES_LABEL_Y_LOCAL = 343;
+    constexpr int RES_COMBO_Y_LOCAL = 356;
     constexpr int RES_COMBO_WIDTH   = 148;  // spans the old left-to-right arrow area
     constexpr int RES_COMBO_HEIGHT  = 16;
-    constexpr int RES_COMBO_MAX_VISIBLE = 4;  // scrollbar appears when list > this
+    constexpr int RES_COMBO_MAX_VISIBLE = 0;  // 0 = show all (opens upward, fits in-window)
 
     // Language combo box placement (relative to m_Pos).
-    constexpr int LANG_LABEL_Y_LOCAL = 283;
+    constexpr int LANG_LABEL_Y_LOCAL = 304;
     constexpr int LANG_COMBO_X_LOCAL = 22;
-    constexpr int LANG_COMBO_Y_LOCAL = 296;
+    constexpr int LANG_COMBO_Y_LOCAL = 317;
     constexpr int LANG_COMBO_WIDTH   = 148;
     constexpr int LANG_COMBO_HEIGHT  = 16;
     constexpr int LANG_COMBO_MAX_VISIBLE = 5;
 
-    // How far the language row pushes the windowed-mode row and close button
-    // down compared to the pre-language layout. Used so the frame slats and
-    // the click-hit rect stay in sync.
-    constexpr int LANGUAGE_ROW_HEIGHT = 39;
-
-    // Font-SIZE combo: a compact dropdown occupying the right side of the row
-    // that used to hold the "Slide Help" checkbox (same y as that checkbox).
-    constexpr int FONTSIZE_COMBO_X_LOCAL = 104;
-    constexpr int FONTSIZE_COMBO_Y_LOCAL = 155;
-    constexpr int FONTSIZE_COMBO_WIDTH   = 68;
-    constexpr int FONTSIZE_COMBO_HEIGHT  = 15;
+    // Font-SIZE combo: full-width row directly below the Font Family row.
+    constexpr int FONTSIZE_LABEL_Y_LOCAL = 265;
+    constexpr int FONTSIZE_COMBO_X_LOCAL = 22;
+    constexpr int FONTSIZE_COMBO_Y_LOCAL = 278;
+    constexpr int FONTSIZE_COMBO_WIDTH   = 148;
+    constexpr int FONTSIZE_COMBO_HEIGHT  = 16;
     constexpr int FONTSIZE_COMBO_MAX_VISIBLE = 6;  // scrollbar appears when list > this
 
-    // Font-FAMILY combo box placement (relative to m_Pos). Row order below the
-    // effect rows is: Font, Language, Resolution, Windowed mode (combos grouped at
-    // the top so an open dropdown never overlaps the Close button).
-    constexpr int FONT_LABEL_Y_LOCAL = 244;
+    // Font-FAMILY combo box placement (relative to m_Pos), first row of the group.
+    constexpr int FONT_LABEL_Y_LOCAL = 226;
     constexpr int FONT_COMBO_X_LOCAL = 22;
-    constexpr int FONT_COMBO_Y_LOCAL = 257;
+    constexpr int FONT_COMBO_Y_LOCAL = 239;
     constexpr int FONT_COMBO_WIDTH   = 148;
     constexpr int FONT_COMBO_HEIGHT  = 16;
     constexpr int FONT_COMBO_MAX_VISIBLE = 5;
@@ -276,6 +275,9 @@ void SEASON3B::CNewUIOptionWindow::InitResolutionCombo()
         s_NumResolutions,
         m_iResolutionIndex,
         RES_COMBO_MAX_VISIBLE);
+    // Resolution is the bottom combo; open its list upward so it doesn't overflow
+    // off-screen behind the skill bar.
+    m_ResolutionCombo.SetOpenUpward(true);
 }
 
 void SEASON3B::CNewUIOptionWindow::InitLanguageCombo()
@@ -598,13 +600,12 @@ bool SEASON3B::CNewUIOptionWindow::UpdateMouseEvent()
 void SEASON3B::CNewUIOptionWindow::HandleCheckboxInputs()
 {
     struct Checkbox { int yLocal; bool* target; };
-    // Note: the row at y=155 (formerly the "Slide Help" checkbox) is now the
-    // Font Size dropdown, handled by m_FontSizeCombo — no checkbox here anymore.
+    // Font Size / Font Family are dropdowns (handled by their combos), and the
+    // Windowed-mode checkbox was removed, so only these checkboxes remain.
     const Checkbox boxes[] = {
         {  43, &m_bAutoAttack        },
         {  65, &m_bWhisperSound      },
-        { 238, &m_bRenderAllEffects  },
-        { 356, &m_bWindowedMode      },
+        { 190, &m_bRenderAllEffects  },  // aligned with the checkbox's render Y
     };
 
     constexpr int CHECKBOX_X_LOCAL = 150;
@@ -828,14 +829,16 @@ void SEASON3B::CNewUIOptionWindow::RenderFrame()
     y = m_Pos.y + 150.f;
     RenderImage(IMAGE_OPTION_LINE, x + 18, y, 154.f, 2.f);     // after music vol
 
-    y += 22.f;
-    RenderImage(IMAGE_OPTION_LINE, x + 18, y, 154.f, 2.f);     // after slide help
-
-    y += 39.f;
-    RenderImage(IMAGE_OPTION_LINE, x + 18, y, 154.f, 2.f);     // after render level
-
-    y += 25.f;
+    // Effect limitation + Render full effects are one group (no divider between them).
+    y = m_Pos.y + 214.f;
     RenderImage(IMAGE_OPTION_LINE, x + 18, y, 154.f, 2.f);     // after render full effects
+
+    // Font Family + Font Size are one group (no divider between them).
+    y = m_Pos.y + 297.f;
+    RenderImage(IMAGE_OPTION_LINE, x + 18, y, 154.f, 2.f);     // after Font Size
+
+    y = m_Pos.y + 336.f;
+    RenderImage(IMAGE_OPTION_LINE, x + 18, y, 154.f, 2.f);     // after Language
 }
 
 void SEASON3B::CNewUIOptionWindow::RenderContents()
@@ -850,12 +853,10 @@ void SEASON3B::CNewUIOptionWindow::RenderContents()
     RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Sound Volume
     y += 28.f;
     RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Music Volume
-    y += 40.f;
-    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Slide Help
-    y += 22.f;
-    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Render Level
+    y += 36.f;                                               // (Font Size row moved to the bottom combo group)
+    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Render Level (Effect limitation)
 
-    y += 39.f;
+    y += 38.f;
     RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Render Full Effects
 
     g_pRenderText->SetFont(g_hFont);
@@ -865,13 +866,16 @@ void SEASON3B::CNewUIOptionWindow::RenderContents()
     g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 70, I18N::Game::BeepSoundForWhispering);
     g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 92, I18N::Game::SoundVolume);
     g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 120, I18N::Game::MusicVolume);
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 160, L"Font Size");
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 182, I18N::Game::EffectLimitation);
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 221, I18N::Game::RenderFullEffects);
+    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 156, I18N::Game::EffectLimitation);
+    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 194, I18N::Game::RenderFullEffects);
 
-    y += 25.f;
-    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Font
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + FONT_LABEL_Y_LOCAL, I18N::Game::Font);
+    y += 32.f;
+    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Font Family
+    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + FONT_LABEL_Y_LOCAL, L"Font Family");
+
+    y += 39.f;
+    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Font Size
+    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + FONTSIZE_LABEL_Y_LOCAL, L"Font Size");
 
     y += 39.f;
     RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Language
@@ -879,11 +883,7 @@ void SEASON3B::CNewUIOptionWindow::RenderContents()
 
     y += 39.f;
     RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Resolution
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 322, I18N::Game::Resolution);
-
-    y += 39.f;
-    RenderImage(IMAGE_OPTION_POINT, x, y, 10.f, 10.f);       // Windowed Mode
-    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + 361, I18N::Game::WindowedMode);
+    g_pRenderText->RenderText(m_Pos.x + 40, m_Pos.y + RES_LABEL_Y_LOCAL, I18N::Game::Resolution);
 }
 
 void SEASON3B::CNewUIOptionWindow::RenderButtons()
@@ -939,21 +939,15 @@ void SEASON3B::CNewUIOptionWindow::RenderButtons()
 
     if (m_bRenderAllEffects)
     {
-        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + 217, 15, 15, 0, 0);
+        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + 190, 15, 15, 0, 0);
     }
     else
     {
-        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + 217, 15, 15, 0, 15.f);
+        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + 190, 15, 15, 0, 15.f);
     }
 
-    if (m_bWindowedMode)
-    {
-        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + 356, 15, 15, 0, 0);
-    }
-    else
-    {
-        RenderImage(IMAGE_OPTION_BTN_CHECK, m_Pos.x + 150, m_Pos.y + 356, 15, 15, 0, 15.f);
-    }
+    // (Windowed-mode checkbox removed from the options window; the client stays
+    // windowed, which is visually identical to fullscreen at native resolution.)
 
     // Combo boxes drawn last so their expanded dropdowns sit on top of
     // anything else in the window. Within the combo pair, render the

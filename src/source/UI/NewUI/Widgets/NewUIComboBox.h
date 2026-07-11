@@ -50,6 +50,12 @@ namespace SEASON3B
                    int maxVisibleItems = 0);
 
         void SetPos(int x, int y) { m_X = x; m_Y = y; }
+
+        // When true, the dropdown list expands UPWARD (above the closed field)
+        // instead of downward. Used for combos near the bottom of a window whose
+        // downward list would overflow off-screen (e.g. the Resolution combo).
+        void SetOpenUpward(bool up) { m_bOpenUpward = up; }
+
         void SetSelectedIndex(int idx);
         int  GetSelectedIndex() const { return m_SelectedIndex; }
 
@@ -86,6 +92,7 @@ namespace SEASON3B
         int m_ItemCount = 0;
         int m_SelectedIndex = 0;
         bool m_bOpen = false;
+        bool m_bOpenUpward = false;
 
         // Scrolling
         int m_MaxVisibleItems = 0;  // 0 = show all, no scrollbar
@@ -95,7 +102,7 @@ namespace SEASON3B
         int  GetVisibleCount() const;       // Rows actually rendered in the open list
         int  GetMaxScrollOffset() const;
         bool IsScrollable() const;
-        int  GetListY() const { return m_Y + m_ItemHeight; }
+        int  GetListY() const { return m_bOpenUpward ? (m_Y - GetListHeight()) : (m_Y + m_ItemHeight); }
         int  GetListHeight() const { return GetVisibleCount() * m_ItemHeight; }
         int  GetItemIndexAtMouse() const;   // -1 if no visible item hit
         void ClampScrollOffset();
