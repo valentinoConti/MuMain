@@ -1677,6 +1677,10 @@ bool CMapManager::InBattleCastle(int iMap)
 
 const wchar_t* CMapManager::GetMapName(int iMap)
 {
+    if (iMap == 90)   // Resistencia (custom map)
+    {
+        return L"Resistencia";
+    }
     if (iMap == WD_34CRYWOLF_1ST)
     {
         return(I18N::Game::CrywolfFortress);

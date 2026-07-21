@@ -121,6 +121,10 @@ void CUIMapName::InitImgPathMap()
     m_mapImgPath[80] = strFolderName + L"MapName_Karutan.tga";
     m_mapImgPath[81] = strFolderName + L"MapName_Karutan.tga";
 #endif	// ASG_ADD_MAP_KARUTAN
+
+    // Resistencia (custom map, server Number 90). Custom title art lives in
+    // ImgsMapName\resistencia.tga (loaded as resistencia.OZT).
+    m_mapImgPath[90] = strFolderName + L"resistencia.tga";
 }
 
 void CUIMapName::Init()
